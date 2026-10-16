@@ -74,7 +74,12 @@ export function fareToStop(
   return map.get(fareKey(routeId, stopId)) ?? { adult: 0, child: 0, night: 0 };
 }
 
-/** Segment fare between two stops on one route: the fare difference from the capital. */
+/**
+ * Fare to ride one bus between two stops on the same route. You pay when you
+ * board, for the whole distance you cover on that bus, so the fare is that of
+ * whichever endpoint is farther from St. John's (the capital). A stop on the
+ * way to the capital therefore costs no more than your boarding stop.
+ */
 export function segmentFare(
   routeId: string,
   fromStopId: string,
@@ -84,9 +89,9 @@ export function segmentFare(
   const from = fareToStop(routeId, fromStopId, map);
   const to = fareToStop(routeId, toStopId, map);
   return {
-    adult: Math.abs(to.adult - from.adult),
-    child: Math.abs(to.child - from.child),
-    night: Math.abs(to.night - from.night),
+    adult: Math.max(from.adult, to.adult),
+    child: Math.max(from.child, to.child),
+    night: Math.max(from.night, to.night),
   };
 }
 
@@ -135,8 +140,9 @@ export interface Itinerary {
 /**
  * Plans trips from `originId` to `destId`:
  * direct routes first, then one-transfer connections. Routes are treated as
- * bidirectional (buses run both directions along a route). Each leg is priced
- * from the per-stop fare table; totals are the sum of the legs.
+ * bidirectional (buses run both directions along a route). You pay per bus you
+ * board, so each leg is priced at the fare of its farthest point from St. John's
+ * and the totals are the sum of the legs.
  */
 export function planJourney(
   originId: bigint,

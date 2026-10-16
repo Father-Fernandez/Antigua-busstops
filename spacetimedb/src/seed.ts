@@ -1,9 +1,11 @@
 ﻿// Seed data for the Antigua bus network, derived from busstopanu.com.
 //
 // STOP COORDINATES: sourced from OpenStreetMap Nominatim, GeoNames (AG dump),
-// and Photon. 83 of 87 stops resolved. Four small hamlets (PENDING_COORDS) are
-// absent from every source and seed with lat/lng 0 until coordinates are added.
-// Stops in APPROXIMATE_COORDS are best-effort placements, not survey-grade.
+// and Photon. 83 of 87 stops resolved; the remaining four small hamlets
+// (Bathlodge, Blackout, Briggins, Carty's Hill) are absent from every source and
+// seed with lat/lng 0 until coordinates are added. Clarkes Hill, Crabbe Hill,
+// Free Trade Zone, Hattan, Horsford Hill, Longfords and Upper Fort Road are
+// best-effort placements, not survey-grade.
 //
 // ROUTE DATA: the site publishes route numbers, fares (adult/child/night), and
 // terminus. Fare values are in cents (t.u16) to avoid floating-point money.
@@ -114,20 +116,6 @@ export const STOPS: SeedStop[] = [
   { name: 'Villa', lat: 17.131116, lng: -61.848248 },
   { name: 'Willikies', lat: 17.085593, lng: -61.707906 },
   { name: 'Yorks', lat: 17.139977, lng: -61.848902 },
-];
-
-// Stops still awaiting coordinates (present in the network, absent from every source).
-export const PENDING_COORDS = ['Bathlodge', 'Blackout', 'Briggins', "Carty's Hill"];
-
-// Best-effort placements (nearest named feature / interpolation), not survey-grade.
-export const APPROXIMATE_COORDS = [
-  'Clarkes Hill',
-  'Crabbe Hill',
-  'Free Trade Zone',
-  'Hattan',
-  'Horsford Hill',
-  'Longfords',
-  'Upper Fort Road',
 ];
 
 // Routes scraped from busstopanu.com (23 routes across East & West stations).

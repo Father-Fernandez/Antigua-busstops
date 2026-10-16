@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BusStop } from '../module_bindings/types';
+import { hasCoordinates } from '../lib/journey';
 
 interface Props {
   stops: readonly BusStop[];
@@ -15,7 +16,7 @@ export default function StopsView({ stops }: Props) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [stops, query]);
 
-  const missing = useMemo(() => stops.filter(s => s.lat === 0 && s.lng === 0).length, [stops]);
+  const missing = useMemo(() => stops.filter(s => !hasCoordinates(s)).length, [stops]);
 
   return (
     <div className="space-y-4">
@@ -57,7 +58,7 @@ export default function StopsView({ stops }: Props) {
             </span>
             <span className="flex min-w-0 flex-1 items-center gap-2">
               <span className="truncate font-semibold text-slate-800">{stop.name}</span>
-              {stop.lat === 0 && stop.lng === 0 && (
+              {!hasCoordinates(stop) && (
                 <span className="shrink-0 rounded-full bg-sun-500/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sun-600">
                   Location pending
                 </span>

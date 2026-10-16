@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import FlagStripe from './FlagStripe';
 
 export type Page = 'planner' | 'map' | 'routes' | 'stops' | 'admin' | 'about';
 
@@ -25,18 +26,6 @@ function BusLogo() {
         <path d="M4 16V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a1 1 0 0 1-1 1h-1v1.5a1.5 1.5 0 0 1-3 0V17H8v1.5a1.5 1.5 0 0 1-3 0V17H5a1 1 0 0 1-1-1Zm3-9h10v4H7V7Zm.5 8a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Zm9 0a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" />
       </svg>
     </span>
-  );
-}
-
-function FlagStripe() {
-  return (
-    <div className="flex h-1.5 w-full" aria-hidden="true">
-      <span className="flex-1 bg-flag-500" />
-      <span className="flex-1 bg-white" />
-      <span className="flex-1 bg-brand-500" />
-      <span className="flex-1 bg-ink" />
-      <span className="flex-1 bg-sun-500" />
-    </div>
   );
 }
 

@@ -1,0 +1,80 @@
+import { schema, table, t } from 'spacetimedb/server';
+
+// Table keys are camelCase (so `ctx.db.busStop`); the explicit `name` keeps the
+// canonical snake_case database name (`bus_stop`) that clients and SQL use.
+const spacetimedb = schema({
+  route: table(
+    { public: true }, {
+      id: t.u64().primaryKey().autoInc(),
+      number: t.string(),
+      name: t.string(),
+      terminus: t.string(),
+      color: t.string(),
+      description: t.string(),
+    }
+  ),
+  busStop: table(
+    { name: 'bus_stop', public: true }, {
+      id: t.u64().primaryKey().autoInc(),
+      name: t.string(),
+      lat: t.f32(),
+      lng: t.f32(),
+    }
+  ),
+  routeStop: table(
+    {
+      name: 'route_stop',
+      public: true,
+      indexes: [
+        { accessor: 'by_route_stop', algorithm: 'btree', columns: ['routeId', 'stopId'] },
+      ],
+    }, {
+      id: t.u64().primaryKey().autoInc(),
+      routeId: t.u64(),
+      stopId: t.u64(),
+      sequence: t.u32(),
+    }
+  ),
+  vehicle: table(
+    { public: false }, {
+      id: t.u64().primaryKey().autoInc(),
+      plate: t.string(),
+      routeId: t.u64().index(),
+    }
+  ),
+  vehiclePosition: table(
+    { name: 'vehicle_position', public: true }, {
+      vehicleId: t.u64().primaryKey(),
+      lat: t.f32(),
+      lng: t.f32(),
+      heading: t.f32(),
+      updatedAt: t.timestamp(),
+    }
+  ),
+  fare: table(
+    { public: true }, {
+      routeId: t.u64().primaryKey(),
+      adult: t.u16(),
+      child: t.u16(),
+      night: t.u16(),
+    }
+  ),
+  routeFare: table(
+    {
+      name: 'route_fare',
+      public: true,
+      indexes: [
+        { accessor: 'by_route_stop', algorithm: 'btree', columns: ['routeId', 'stopId'] },
+      ],
+    }, {
+      id: t.u64().primaryKey().autoInc(),
+      routeId: t.u64(),
+      stopId: t.u64(),
+      adult: t.u16(),
+      child: t.u16(),
+      night: t.u16(),
+    }
+  ),
+});
+
+export default spacetimedb;

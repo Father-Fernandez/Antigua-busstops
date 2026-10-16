@@ -3,12 +3,16 @@ import { reducers } from '../module_bindings';
 import { useReducer } from 'spacetimedb/react';
 import type { BusStop, Fare, Route, RouteFare, RouteStop } from '../module_bindings/types';
 import {
+  buildFareByRouteMap,
   buildRouteFareMap,
+  buildRouteStopMap,
+  buildStopMap,
   fareToStop,
   formatFare,
+  sortRoutesByNumber,
   stopsForRoute,
-  buildRouteStopMap,
 } from '../lib/journey';
+import RouteBadge from './RouteBadge';
 
 interface Props {
   routes: readonly Route[];
@@ -34,6 +38,7 @@ export default function AdminView({ routes, stops, routeStops, fares, routeFares
   const setFare = useReducer(reducers.setFare);
   const setRouteFare = useReducer(reducers.setRouteFare);
   const addStopToRoute = useReducer(reducers.addStopToRoute);
+  const addStop = useReducer(reducers.addStop);
 
   const [form, setForm] = useState({
     number: '',
@@ -42,32 +47,22 @@ export default function AdminView({ routes, stops, routeStops, fares, routeFares
     color: PALETTE[2],
     description: '',
   });
+  const [stopForm, setStopForm] = useState({ name: '', lat: '', lng: '' });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [fareForm, setFareForm] = useState({ adult: '', child: '', night: '' });
   const [stopFareId, setStopFareId] = useState('');
   const [stopFareForm, setStopFareForm] = useState({ adult: '', child: '', night: '' });
   const [stopToAdd, setStopToAdd] = useState('');
 
-  const stopById = useMemo(() => {
-    const map = new Map<string, BusStop>();
-    for (const s of stops) map.set(String(s.id), s);
-    return map;
-  }, [stops]);
+  const stopById = useMemo(() => buildStopMap(stops), [stops]);
 
   const byRoute = useMemo(() => buildRouteStopMap(routeStops), [routeStops]);
 
-  const fareByRoute = useMemo(() => {
-    const map = new Map<string, Fare>();
-    for (const f of fares) map.set(String(f.routeId), f);
-    return map;
-  }, [fares]);
+  const fareByRoute = useMemo(() => buildFareByRouteMap(fares), [fares]);
 
   const routeFareMap = useMemo(() => buildRouteFareMap(routeFares), [routeFares]);
 
-  const sortedRoutes = useMemo(
-    () => [...routes].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })),
-    [routes]
-  );
+  const sortedRoutes = useMemo(() => sortRoutesByNumber(routes), [routes]);
 
   const sortedStops = useMemo(
     () => [...stops].sort((a, b) => a.name.localeCompare(b.name)),
@@ -85,6 +80,18 @@ export default function AdminView({ routes, stops, routeStops, fares, routeFares
       description: form.description.trim(),
     });
     setForm({ number: '', name: '', terminus: 'West', color: PALETTE[2], description: '' });
+  };
+
+  const submitStop = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = stopForm.name.trim();
+    if (!name) return;
+    addStop({
+      name,
+      lat: Number.parseFloat(stopForm.lat) || 0,
+      lng: Number.parseFloat(stopForm.lng) || 0,
+    });
+    setStopForm({ name: '', lat: '', lng: '' });
   };
 
   const openManage = (route: Route) => {
@@ -206,6 +213,57 @@ export default function AdminView({ routes, stops, routeStops, fares, routeFares
         </form>
       </div>
 
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-800">Add a bus stop</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          New stops become available to assign to routes immediately.
+        </p>
+        <form onSubmit={submitStop} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block lg:col-span-2">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">Name</span>
+            <input
+              className={inputClass}
+              placeholder="e.g. Sea View Farm"
+              value={stopForm.name}
+              onChange={e => setStopForm({ ...stopForm, name: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+              Latitude
+            </span>
+            <input
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="17.12"
+              value={stopForm.lat}
+              onChange={e => setStopForm({ ...stopForm, lat: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+              Longitude
+            </span>
+            <input
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="-61.84"
+              value={stopForm.lng}
+              onChange={e => setStopForm({ ...stopForm, lng: e.target.value })}
+            />
+          </label>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <button
+              type="submit"
+              disabled={!stopForm.name.trim()}
+              className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Add stop
+            </button>
+          </div>
+        </form>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-800">Manage routes</h2>
@@ -226,12 +284,7 @@ export default function AdminView({ routes, stops, routeStops, fares, routeFares
               return (
                 <li key={key}>
                   <div className="flex flex-wrap items-center gap-3 px-6 py-4">
-                    <span
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-sm font-bold text-white"
-                      style={{ backgroundColor: route.color || '#407fc9' }}
-                    >
-                      {route.number}
-                    </span>
+                    <RouteBadge number={route.number} color={route.color} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-slate-800">{route.name}</p>
                       <p className="text-xs text-slate-500">

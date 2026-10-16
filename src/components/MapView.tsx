@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import type { BusStop, Route, RouteStop, VehiclePosition } from '../module_bindings/types';
-import { buildRouteStopMap } from '../lib/journey';
+import { buildRouteStopMap, buildStopMap, hasCoordinates } from '../lib/journey';
 
 interface Props {
   stops: readonly BusStop[];
@@ -38,20 +38,15 @@ function vehicleIcon(heading: number) {
   });
 }
 
-function hasCoords(s: BusStop): boolean {
-  return !(s.lat === 0 && s.lng === 0);
-}
-
 export default function MapView({ stops, routes, routeStops, vehiclePositions }: Props) {
   const [showStops, setShowStops] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
   const [showBuses, setShowBuses] = useState(true);
 
-  const mappedStops = useMemo(() => stops.filter(hasCoords), [stops]);
+  const mappedStops = useMemo(() => stops.filter(hasCoordinates), [stops]);
 
   const routeLines = useMemo(() => {
-    const stopById = new Map<string, BusStop>();
-    for (const s of stops) stopById.set(String(s.id), s);
+    const stopById = buildStopMap(stops);
     const byRoute = buildRouteStopMap(routeStops);
 
     const lines: { id: string; color: string; positions: [number, number][] }[] = [];
@@ -60,7 +55,7 @@ export default function MapView({ stops, routes, routeStops, vehiclePositions }:
       const positions: [number, number][] = [];
       for (const rs of rows) {
         const s = stopById.get(String(rs.stopId));
-        if (s && hasCoords(s)) positions.push([s.lat, s.lng]);
+        if (s && hasCoordinates(s)) positions.push([s.lat, s.lng]);
       }
       if (positions.length >= 2) {
         lines.push({ id: String(route.id), color: route.color || '#407fc9', positions });

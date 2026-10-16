@@ -1,23 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { BusStop, Route, RouteFare, RouteStop } from '../module_bindings/types';
-import { buildRouteFareMap, formatFare, planJourney, type Itinerary } from '../lib/journey';
+import { buildRouteFareMap, buildStopMap, formatFare, planJourney, type Itinerary } from '../lib/journey';
+import RouteBadge from './RouteBadge';
 
 interface Props {
   stops: readonly BusStop[];
   routes: readonly Route[];
   routeStops: readonly RouteStop[];
   routeFares: readonly RouteFare[];
-}
-
-function RouteBadge({ number, color }: { number: string; color: string }) {
-  return (
-    <span
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-sm font-bold text-white shadow-sm"
-      style={{ backgroundColor: color || '#1f63f5' }}
-    >
-      {number}
-    </span>
-  );
 }
 
 function ItineraryCard({ itinerary }: { itinerary: Itinerary }) {
@@ -72,11 +62,7 @@ export default function JourneyPlanner({ stops, routes, routeStops, routeFares }
     [stops]
   );
 
-  const stopById = useMemo(() => {
-    const map = new Map<string, BusStop>();
-    for (const s of stops) map.set(String(s.id), s);
-    return map;
-  }, [stops]);
+  const stopById = useMemo(() => buildStopMap(stops), [stops]);
 
   const routeFareMap = useMemo(() => buildRouteFareMap(routeFares), [routeFares]);
 

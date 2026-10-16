@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react';
 import type { BusStop, Fare, Route, RouteFare, RouteStop } from '../module_bindings/types';
-import { buildRouteFareMap, buildRouteStopMap, fareToStop, formatFare, stopsForRoute } from '../lib/journey';
+import {
+  buildFareByRouteMap,
+  buildRouteFareMap,
+  buildRouteStopMap,
+  buildStopMap,
+  fareToStop,
+  formatFare,
+  sortRoutesByNumber,
+  stopsForRoute,
+} from '../lib/journey';
+import RouteBadge from './RouteBadge';
 
 interface Props {
   routes: readonly Route[];
@@ -13,26 +23,15 @@ interface Props {
 export default function RoutesView({ routes, routeStops, stops, fares, routeFares }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const stopById = useMemo(() => {
-    const map = new Map<string, BusStop>();
-    for (const s of stops) map.set(String(s.id), s);
-    return map;
-  }, [stops]);
+  const stopById = useMemo(() => buildStopMap(stops), [stops]);
 
   const byRoute = useMemo(() => buildRouteStopMap(routeStops), [routeStops]);
 
-  const fareByRoute = useMemo(() => {
-    const map = new Map<string, Fare>();
-    for (const f of fares) map.set(String(f.routeId), f);
-    return map;
-  }, [fares]);
+  const fareByRoute = useMemo(() => buildFareByRouteMap(fares), [fares]);
 
   const routeFareMap = useMemo(() => buildRouteFareMap(routeFares), [routeFares]);
 
-  const sorted = useMemo(
-    () => [...routes].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true })),
-    [routes]
-  );
+  const sorted = useMemo(() => sortRoutesByNumber(routes), [routes]);
 
   if (sorted.length === 0) {
     return (
@@ -58,12 +57,7 @@ export default function RoutesView({ routes, routeStops, stops, fares, routeFare
               onClick={() => setExpanded(isOpen ? null : key)}
               className="flex w-full items-center gap-4 px-5 py-4 text-left"
             >
-              <span
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-lg font-extrabold text-white shadow-sm"
-                style={{ backgroundColor: route.color || '#1f63f5' }}
-              >
-                {route.number}
-              </span>
+              <RouteBadge number={route.number} color={route.color} size="lg" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-bold text-slate-800">{route.name}</span>
                 <span className="block text-sm text-slate-500">

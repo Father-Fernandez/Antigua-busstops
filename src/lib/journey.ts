@@ -7,6 +7,35 @@ export function formatFare(cents: number | null | undefined): string {
   return `${CURRENCY} ${(cents / 100).toFixed(2)}`;
 }
 
+/** Max itineraries returned from a single journey search. */
+export const MAX_ITINERARIES = 8;
+
+/** Index stops by id. */
+export function buildStopMap(stops: readonly BusStop[]): Map<string, BusStop> {
+  const map = new Map<string, BusStop>();
+  for (const s of stops) map.set(String(s.id), s);
+  return map;
+}
+
+/** Index the route-level fare by routeId. */
+export function buildFareByRouteMap(fares: readonly Fare[]): Map<string, Fare> {
+  const map = new Map<string, Fare>();
+  for (const f of fares) map.set(String(f.routeId), f);
+  return map;
+}
+
+/** Routes sorted by number, numeric-aware (so "9" < "10" < "29B"). */
+export function sortRoutesByNumber(routes: readonly Route[]): Route[] {
+  return [...routes].sort((a, b) =>
+    a.number.localeCompare(b.number, undefined, { numeric: true })
+  );
+}
+
+/** A stop is mappable only once it has real coordinates (0,0 means pending). */
+export function hasCoordinates(stop: BusStop): boolean {
+  return !(stop.lat === 0 && stop.lng === 0);
+}
+
 export interface RouteWithStops {
   route: Route;
   stops: BusStop[];
@@ -185,5 +214,5 @@ export function planJourney(
     }
   }
 
-  return [...direct, ...transfers].slice(0, 8);
+  return [...direct, ...transfers].slice(0, MAX_ITINERARIES);
 }

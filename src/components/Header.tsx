@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import FlagStripe from './FlagStripe';
 import type { Theme } from '../lib/theme';
-
-export type Page = 'planner' | 'map' | 'routes' | 'stops' | 'data' | 'admin' | 'about';
+import type { Page } from '../lib/router';
 
 const NAV: { id: Page; label: string }[] = [
   { id: 'planner', label: 'Journey Planner' },
@@ -18,7 +17,6 @@ interface HeaderProps {
   page: Page;
   onNavigate: (page: Page) => void;
   connected: boolean;
-  vehicleCount: number;
   theme: Theme;
   onToggleTheme: () => void;
   showAdmin: boolean;
@@ -54,7 +52,6 @@ export default function Header({
   page,
   onNavigate,
   connected,
-  vehicleCount,
   theme,
   onToggleTheme,
   showAdmin,
@@ -87,16 +84,16 @@ export default function Header({
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/20 md:flex">
+            <span
+              className="hidden items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/20 sm:flex"
+              title={connected ? 'Connected to the live database' : 'Not connected'}
+            >
               <span
                 className={`h-2 w-2 rounded-full ${
                   connected ? 'bg-emerald-400 animate-pulse' : 'bg-flag-400'
                 }`}
               />
               {connected ? 'Live' : 'Offline'}
-              {vehicleCount > 0 && (
-                <span className="text-white/70">· {vehicleCount} tracked</span>
-              )}
             </span>
 
             <button
@@ -114,7 +111,7 @@ export default function Header({
               aria-label="Toggle navigation"
               aria-expanded={open}
             >
-              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white">
+              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white" aria-hidden="true">
                 {open ? (
                   <path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z" />
                 ) : (
@@ -126,12 +123,16 @@ export default function Header({
         </div>
       </div>
 
-      <nav className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <nav
+        aria-label="Primary"
+        className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      >
         <div className="mx-auto hidden max-w-6xl gap-1 px-4 sm:px-6 lg:flex">
           {nav.map(item => (
             <button
               key={item.id}
               onClick={() => go(item.id)}
+              aria-current={page === item.id ? 'page' : undefined}
               className={`relative px-4 py-3 text-sm font-semibold transition ${
                 page === item.id
                   ? 'text-flag-600 dark:text-flag-400'
@@ -152,6 +153,7 @@ export default function Header({
               <button
                 key={item.id}
                 onClick={() => go(item.id)}
+                aria-current={page === item.id ? 'page' : undefined}
                 className={`rounded-lg px-3 py-2.5 text-left text-sm font-semibold ${
                   page === item.id
                     ? 'bg-flag-50 text-flag-600 dark:bg-flag-500/15 dark:text-flag-400'

@@ -191,8 +191,6 @@ export default function DataView({
                 ['route_stop', 'Which stops belong to each route, in order', 'Read'],
                 ['fare', 'Per-route adult / child / night fares', 'Read'],
                 ['route_fare', 'Fare to reach each stop from St. John’s', 'Read'],
-                ['vehicle_position', 'Live bus positions', 'Read'],
-                ['vehicle', 'Bus plates (internal)', 'Private'],
                 ['admin', 'Identities allowed to edit', 'Read-only'],
               ].map(([table, contents, access]) => (
                 <tr key={table} className="border-b border-slate-100 last:border-0 dark:border-slate-800">

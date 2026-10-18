@@ -42,22 +42,6 @@ const spacetimedb = schema({
       sequence: t.u32(),
     }
   ),
-  vehicle: table(
-    { public: false }, {
-      id: t.u64().primaryKey().autoInc(),
-      plate: t.string(),
-      routeId: t.u64().index(),
-    }
-  ),
-  vehiclePosition: table(
-    { name: 'vehicle_position', public: true }, {
-      vehicleId: t.u64().primaryKey(),
-      lat: t.f32(),
-      lng: t.f32(),
-      heading: t.f32(),
-      updatedAt: t.timestamp(),
-    }
-  ),
   fare: table(
     { public: true }, {
       routeId: t.u64().primaryKey(),

@@ -1,116 +1,77 @@
-Get a SpacetimeDB React app running in under 5 minutes.
+# Bus Stop Antigua
 
-## Prerequisites
+A journey planner for the Antigua public bus network — search routes, stops and
+fares, explore the map, and download the open data. Built with React + Tailwind
+on the front end and SpacetimeDB as the live backend.
 
-- [Node.js](https://nodejs.org/) 18+ installed
-- [SpacetimeDB CLI](https://spacetimedb.com/install) installed
+## Stack
 
-Install the [SpacetimeDB CLI](https://spacetimedb.com/install) before continuing.
+- **Front end:** React 18, TypeScript, Vite, Tailwind CSS v4
+- **Backend:** SpacetimeDB (TypeScript module) — tables + reducers
+- **Map:** Leaflet / react-leaflet (OpenStreetMap tiles)
+- **Tests:** Vitest
 
----
+## Project structure
 
-## Create your project
+```
+bus-system/
+├── spacetimedb/            # Server module (tables, reducers, seed data)
+│   └── src/
+│       ├── schema.ts       # Table definitions
+│       ├── index.ts        # Reducers + seeding lifecycle
+│       └── seed.ts         # 23 routes / 87 stops
+├── src/
+│   ├── components/         # UI (planner, map, views, header…)
+│   ├── lib/                # journey planner, router, export, theme, config
+│   └── module_bindings/    # Auto-generated SpacetimeDB client types
+├── docker/                 # nginx config + runtime-config entrypoint
+├── Dockerfile
+└── public/                 # Icons, manifest, runtime config.js
+```
 
-Run the `spacetime dev` command to create a new project with a SpacetimeDB module and React client.
-
-This will start the local SpacetimeDB server, publish your module, generate TypeScript bindings, and start the React development server.
+## Development
 
 ```bash
-spacetime dev --template react-ts
+npm install
+npm run dev            # Vite dev server
 ```
 
+The client connects to the SpacetimeDB host/database in `.env`
+(`VITE_SPACETIMEDB_HOST`, `VITE_SPACETIMEDB_DB_NAME`). At runtime these can be
+overridden via `window.__ENV__` (used by the Docker image).
 
-
-## Open your app
-
-Navigate to [http://localhost:5173](http://localhost:5173) to see your app running.
-
-The template includes a basic React app connected to SpacetimeDB.
-
-
-
-## Explore the project structure
-
-Your project contains both server and client code.
-
-Edit `spacetimedb/src/index.ts` to add tables and reducers. Edit `client/src/App.tsx` to build your UI.
-
-```
-my-spacetime-app/
-├── spacetimedb/          # Your SpacetimeDB module
-│   └── src/
-│       └── index.ts      # Server-side logic
-├── client/               # React frontend
-│   └── src/
-│       ├── App.tsx
-│       └── module_bindings/  # Auto-generated types
-└── package.json
-```
-
-
-
-## Understand tables and reducers
-
-Open `spacetimedb/src/index.ts` to see the module code. The template includes a `person` table and two reducers: `add` to insert a person, and `sayHello` to greet everyone.
-
-Tables store your data. Reducers are functions that modify data — they're the only way to write to the database.
-
-```typescript
-import { schema, table, t } from 'spacetimedb/server';
-
-const spacetimedb = schema({
-  person: table(
-    { public: true },
-    {
-      name: t.string(),
-    }
-  ),
-});
-export default spacetimedb;
-
-export const add = spacetimedb.reducer(
-  { name: t.string() },
-  (ctx, { name }) => {
-    ctx.db.person.insert({ name });
-  }
-);
-
-export const sayHello = spacetimedb.reducer(ctx => {
-  for (const person of ctx.db.person.iter()) {
-    console.info(`Hello, ${person.name}!`);
-  }
-  console.info('Hello, World!');
-});
-```
-
-
-
-## Test with the CLI
-
-Open a new terminal and navigate to your project directory. Then use the SpacetimeDB CLI to call reducers and query your data directly.
+### Working on the module
 
 ```bash
-cd my-spacetime-app
-
-# Call the add reducer to insert a person
-spacetime call add Alice
-
-# Query the person table
-spacetime sql "SELECT * FROM person"
- name
----------
- "Alice"
-
-# Call sayHello to greet everyone
-spacetime call say_hello
-
-# View the module logs
-spacetime logs
-2025-01-13T12:00:00.000000Z  INFO: Hello, Alice!
-2025-01-13T12:00:00.000000Z  INFO: Hello, World!
+npx tsc -p spacetimedb/tsconfig.json --noEmit   # type-check the module
+npm run spacetime:generate                       # regenerate client bindings
+npm run spacetime:publish                        # publish to Maincloud
+npm run spacetime:publish:local                  # publish to a local server
 ```
 
-## Next steps
+## Tests & checks
 
-- See the [Chat App Tutorial](https://spacetimedb.com/docs/tutorials/chat-app) for a complete example
-- Read the [TypeScript SDK Reference](https://spacetimedb.com/docs/clients/typescript) for detailed API docs
+```bash
+npm test          # Vitest (journey planner logic)
+npm run typecheck # tsc
+npm run build     # production build
+```
+
+## Docker
+
+```bash
+docker compose up --build      # serve on http://localhost:8080
+```
+
+The image builds the client and serves it with nginx, injecting the live
+SpacetimeDB target at container start (see `docker/40-runtime-config.sh`).
+
+## Open data
+
+Routes, stops and fares are public and read-only; writes are restricted to
+administrators via guarded reducers. See the **Data** page in the app for JSON /
+CSV exports and direct SpacetimeDB connection details.
+
+Seed data is derived from [busstopanu.com](https://busstopanu.com); stop
+coordinates come from OpenStreetMap / GeoNames, with a few best-effort
+placements flagged as approximate.

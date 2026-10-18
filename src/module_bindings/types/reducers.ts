@@ -11,7 +11,6 @@ import AddStopReducer from "../add_stop_reducer";
 import AddStopToRouteReducer from "../add_stop_to_route_reducer";
 import ClaimAdminReducer from "../claim_admin_reducer";
 import DeleteRouteReducer from "../delete_route_reducer";
-import ReportPositionReducer from "../report_position_reducer";
 import SetFareReducer from "../set_fare_reducer";
 import SetRouteFareReducer from "../set_route_fare_reducer";
 
@@ -20,7 +19,6 @@ export type AddStopParams = __Infer<typeof AddStopReducer>;
 export type AddStopToRouteParams = __Infer<typeof AddStopToRouteReducer>;
 export type ClaimAdminParams = __Infer<typeof ClaimAdminReducer>;
 export type DeleteRouteParams = __Infer<typeof DeleteRouteReducer>;
-export type ReportPositionParams = __Infer<typeof ReportPositionReducer>;
 export type SetFareParams = __Infer<typeof SetFareReducer>;
 export type SetRouteFareParams = __Infer<typeof SetRouteFareReducer>;
 

@@ -1,13 +1,44 @@
 import { useMemo, useState } from 'react';
 import type { BusStop, Route, RouteFare, RouteStop } from '../module_bindings/types';
-import { buildRouteFareMap, buildStopMap, formatFare, planJourney, type Itinerary } from '../lib/journey';
+import {
+  buildRouteFareMap,
+  buildStopMap,
+  formatFare,
+  planJourney,
+  type Itinerary,
+} from '../lib/journey';
 import RouteBadge from './RouteBadge';
+import StopCombobox from './StopCombobox';
 
 interface Props {
   stops: readonly BusStop[];
   routes: readonly Route[];
   routeStops: readonly RouteStop[];
   routeFares: readonly RouteFare[];
+  initialFrom?: string;
+  initialTo?: string;
+  onPlan?: (from: string, to: string) => void;
+}
+
+const LAST_JOURNEY_KEY = 'bus-stop-antigua:last-journey';
+
+function readLastJourney(): { from: string; to: string } | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_JOURNEY_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof (parsed as { from?: unknown }).from === 'string' &&
+      typeof (parsed as { to?: unknown }).to === 'string'
+    ) {
+      return parsed as { from: string; to: string };
+    }
+  } catch {
+    /* ignore malformed storage */
+  }
+  return null;
 }
 
 function ItineraryCard({ itinerary }: { itinerary: Itinerary }) {
@@ -58,18 +89,49 @@ function ItineraryCard({ itinerary }: { itinerary: Itinerary }) {
   );
 }
 
-export default function JourneyPlanner({ stops, routes, routeStops, routeFares }: Props) {
-  const [origin, setOrigin] = useState('');
-  const [dest, setDest] = useState('');
-  const [submitted, setSubmitted] = useState<{ origin: string; dest: string } | null>(null);
-
+export default function JourneyPlanner({
+  stops,
+  routes,
+  routeStops,
+  routeFares,
+  initialFrom,
+  initialTo,
+  onPlan,
+}: Props) {
   const sortedStops = useMemo(
     () => [...stops].sort((a, b) => a.name.localeCompare(b.name)),
     [stops]
   );
+  const validIds = useMemo(() => new Set(sortedStops.map(s => String(s.id))), [sortedStops]);
+
+  const urlJourney = useMemo(() => {
+    if (
+      initialFrom &&
+      initialTo &&
+      initialFrom !== initialTo &&
+      validIds.has(initialFrom) &&
+      validIds.has(initialTo)
+    ) {
+      return { from: initialFrom, to: initialTo };
+    }
+    return null;
+  }, [initialFrom, initialTo, validIds]);
+
+  const remembered = useMemo(() => {
+    const last = readLastJourney();
+    if (last && validIds.has(last.from) && validIds.has(last.to)) return last;
+    return null;
+  }, [validIds]);
+
+  const start = urlJourney ?? remembered;
+
+  const [origin, setOrigin] = useState(start?.from ?? '');
+  const [dest, setDest] = useState(start?.to ?? '');
+  const [submitted, setSubmitted] = useState<{ origin: string; dest: string } | null>(
+    urlJourney ? { origin: urlJourney.from, dest: urlJourney.to } : null
+  );
 
   const stopById = useMemo(() => buildStopMap(stops), [stops]);
-
   const routeFareMap = useMemo(() => buildRouteFareMap(routeFares), [routeFares]);
 
   const results = useMemo(() => {
@@ -84,14 +146,30 @@ export default function JourneyPlanner({ stops, routes, routeStops, routeFares }
     );
   }, [submitted, routes, routeStops, stopById, routeFareMap]);
 
+  const plan = (from: string, to: string) => {
+    setSubmitted({ origin: from, dest: to });
+    try {
+      window.localStorage.setItem(LAST_JOURNEY_KEY, JSON.stringify({ from, to }));
+    } catch {
+      /* storage may be unavailable */
+    }
+    onPlan?.(from, to);
+  };
+
+  const chooseOrigin = (id: string) => {
+    setOrigin(id);
+    setSubmitted(null);
+  };
+  const chooseDest = (id: string) => {
+    setDest(id);
+    setSubmitted(null);
+  };
+
   const swap = () => {
     setOrigin(dest);
     setDest(origin);
     setSubmitted(null);
   };
-
-  const selectClass =
-    'w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 pr-10 text-slate-800 shadow-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
@@ -107,22 +185,15 @@ export default function JourneyPlanner({ stops, routes, routeStops, routeFares }
           className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-end"
           onSubmit={e => {
             e.preventDefault();
-            setSubmitted({ origin, dest });
+            if (origin && dest && origin !== dest) plan(origin, dest);
           }}
         >
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              I am here
-            </span>
-            <select className={selectClass} value={origin} onChange={e => setOrigin(e.target.value)}>
-              <option value="">Select a stop…</option>
-              {sortedStops.map(s => (
-                <option key={String(s.id)} value={String(s.id)}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <StopCombobox
+            label="I am here"
+            stops={sortedStops}
+            value={origin}
+            onChange={chooseOrigin}
+          />
 
           <button
             type="button"
@@ -130,24 +201,17 @@ export default function JourneyPlanner({ stops, routes, routeStops, routeFares }
             className="mx-auto grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-brand-600 shadow-sm transition hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-900 dark:text-brand-400 dark:hover:bg-slate-800 sm:mb-0.5"
             aria-label="Swap origin and destination"
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
               <path d="M7 7h9l-2.5-2.5L15 3l5 5-5 5-1.5-1.5L16 9H7V7Zm10 10H8l2.5 2.5L9 21l-5-5 5-5 1.5 1.5L8 15h9v2Z" />
             </svg>
           </button>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              I am going to
-            </span>
-            <select className={selectClass} value={dest} onChange={e => setDest(e.target.value)}>
-              <option value="">Select a stop…</option>
-              {sortedStops.map(s => (
-                <option key={String(s.id)} value={String(s.id)}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <StopCombobox
+            label="I am going to"
+            stops={sortedStops}
+            value={dest}
+            onChange={chooseDest}
+          />
 
           <button
             type="submit"

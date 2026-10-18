@@ -59,19 +59,3 @@ export const RouteStop = __t.object("RouteStop", {
 });
 export type RouteStop = __Infer<typeof RouteStop>;
 
-export const Vehicle = __t.object("Vehicle", {
-  id: __t.u64(),
-  plate: __t.string(),
-  routeId: __t.u64(),
-});
-export type Vehicle = __Infer<typeof Vehicle>;
-
-export const VehiclePosition = __t.object("VehiclePosition", {
-  vehicleId: __t.u64(),
-  lat: __t.f32(),
-  lng: __t.f32(),
-  heading: __t.f32(),
-  updatedAt: __t.timestamp(),
-});
-export type VehiclePosition = __Infer<typeof VehiclePosition>;
-

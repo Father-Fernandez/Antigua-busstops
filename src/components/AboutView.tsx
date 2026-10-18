@@ -3,19 +3,17 @@ import LegacyLinks from './LegacyLinks';
 interface Props {
   stopCount: number;
   routeCount: number;
-  vehicleCount: number;
 }
 
-export default function AboutView({ stopCount, routeCount, vehicleCount }: Props) {
+export default function AboutView({ stopCount, routeCount }: Props) {
   const stats = [
     { label: 'Stops', value: stopCount },
     { label: 'Routes', value: routeCount },
-    { label: 'Vehicles tracked', value: vehicleCount },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {stats.map(s => (
           <div
             key={s.label}
@@ -30,9 +28,9 @@ export default function AboutView({ stopCount, routeCount, vehicleCount }: Props
       <div className="max-w-none rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">About this service</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          Bus Stop Antigua is a real-time bus tracking and journey-planning tool for the Antigua
-          public bus network. Data is served live with SpacetimeDB, so routes, stops, fares and
-          vehicle positions stay in sync across every connected client without a refresh.
+          Bus Stop Antigua is a journey-planning tool for the Antigua public bus network. Data is
+          served live with SpacetimeDB, so routes, stops and fares stay in sync across every
+          connected client without a refresh.
         </p>
 
         <h3 className="mt-5 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">

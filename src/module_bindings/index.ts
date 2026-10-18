@@ -39,7 +39,6 @@ import AddStopReducer from "./add_stop_reducer";
 import AddStopToRouteReducer from "./add_stop_to_route_reducer";
 import ClaimAdminReducer from "./claim_admin_reducer";
 import DeleteRouteReducer from "./delete_route_reducer";
-import ReportPositionReducer from "./report_position_reducer";
 import SetFareReducer from "./set_fare_reducer";
 import SetRouteFareReducer from "./set_route_fare_reducer";
 
@@ -52,7 +51,6 @@ import FareRow from "./fare_table";
 import RouteRow from "./route_table";
 import RouteFareRow from "./route_fare_table";
 import RouteStopRow from "./route_stop_table";
-import VehiclePositionRow from "./vehicle_position_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -132,17 +130,6 @@ const tablesSchema = __schema({
       { name: 'route_stop_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, RouteStopRow),
-  vehiclePosition: __table({
-    name: 'vehicle_position',
-    indexes: [
-      { accessor: 'vehicleId', name: 'vehicle_position_vehicle_id_idx_btree', algorithm: 'btree', columns: [
-        'vehicleId',
-      ] },
-    ],
-    constraints: [
-      { name: 'vehicle_position_vehicle_id_key', constraint: 'unique', columns: ['vehicleId'] },
-    ],
-  }, VehiclePositionRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
@@ -152,7 +139,6 @@ const reducersSchema = __reducers(
   __reducerSchema("add_stop_to_route", AddStopToRouteReducer),
   __reducerSchema("claim_admin", ClaimAdminReducer),
   __reducerSchema("delete_route", DeleteRouteReducer),
-  __reducerSchema("report_position", ReportPositionReducer),
   __reducerSchema("set_fare", SetFareReducer),
   __reducerSchema("set_route_fare", SetRouteFareReducer),
 );

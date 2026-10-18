@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "generate": "cargo run -p gen-bindings -- --out-dir src/module_bindings --module-path spacetimedb && prettier --write src/module_bindings",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "spacetime:generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path spacetimedb",
-    "spacetime:publish:local": "spacetime publish --module-path server --server local",
-    "spacetime:publish": "spacetime publish --module-path server --server maincloud"
+    "spacetime:publish:local": "spacetime publish bus-system --module-path spacetimedb --server local --yes",
+    "spacetime:publish": "spacetime publish bus-system-qcj1z --module-path spacetimedb --server maincloud --yes"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -27,6 +29,7 @@
     "@vitejs/plugin-react": "^5.0.2",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.6.2",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "vitest": "^5.0.5"
   }
 }

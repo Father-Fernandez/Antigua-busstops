@@ -177,29 +177,4 @@ export const setRouteFare = spacetimedb.reducer(
   }
 );
 
-export const reportPosition = spacetimedb.reducer(
-  { vehicleId: t.u64(), lat: t.f32(), lng: t.f32(), heading: t.f32() },
-  (ctx, { vehicleId, lat, lng, heading }) => {
-    assertAdmin(ctx);
-    const updatedAt = ctx.timestamp;
-    const existing = ctx.db.vehiclePosition.vehicleId.find(vehicleId);
 
-    if (existing) {
-      ctx.db.vehiclePosition.vehicleId.update({
-        ...existing,
-        lat,
-        lng,
-        heading,
-        updatedAt,
-      });
-    } else {
-      ctx.db.vehiclePosition.insert({
-        vehicleId,
-        lat,
-        lng,
-        heading,
-        updatedAt,
-      });
-    }
-  }
-);

@@ -39,8 +39,7 @@ and the database keeps it in sync.
    reducer call   │   │  Reducers  │─────▶│         Tables           │    │
   ────────────────┼──▶│ (mutate    │      │  route, bus_stop,        │    │
                   │   │  state)    │      │  route_stop, fare,       │    │
-                  │   └────────────┘      │  route_fare, vehicle,    │    │
-                  │                       │  vehicle_position        │    │
+                  │   └────────────┘      │  route_fare, admin       │    │
                   │                       └────────────┬─────────────┘    │
                   │                                    │ row changes      │
                   └────────────────────────────────────┼──────────────────┘
@@ -66,7 +65,7 @@ and the database keeps it in sync.
    as an argument to a reducer.
 5. **Auto-increment IDs are not sequential.** Gaps are normal — order by an
    explicit column (like `sequence`) instead.
-6. **Table `name`s must be snake_case** (`route_stop`, `vehicle_position`); the
+6. **Table `name`s must be snake_case** (`route_stop`, `route_fare`); the
    TypeScript identifiers stay camelCase.
 
 ---
@@ -85,6 +84,8 @@ bus-system/
 │   ├── index.css                   # Tailwind v4 + heritage @theme palette
 │   ├── lib/
 │   │   ├── journey.ts              # Journey planning + fare helpers
+│   │   ├── journey.test.ts         # Vitest coverage for the fare/planner logic
+│   │   ├── router.ts               # Hash routing (`#/page?from=&to=`) + deep links
 │   │   ├── config.ts               # Runtime SpacetimeDB host / database
 │   │   ├── weather.ts              # Antigua weather (Open-Meteo, no key)
 │   │   ├── links.ts                # Links to the original busstopanu.com pages
@@ -107,18 +108,18 @@ schema change in `spacetimedb/src/index.ts`, regenerate it so the client's
 npm run spacetime:generate
 ```
 
-> Note: the CLI **skips private tables during codegen**, so `vehicle` (private)
-> does not appear in the client bindings.
+> Note: the CLI **skips private tables during codegen**. Every table here is
+> public, so all of them appear in the client bindings.
 
 ---
 
 ## 3. Data model
 
-The schema is split by **access pattern**, not by entity. Transient, high-churn
-data is kept in its own table so subscribers only re-render rows that actually
-change. All network data is `public` so passengers can read it; writes still go
-exclusively through reducers, and every mutating reducer is **admin-guarded**
-(see §4), so the public can read but not edit.
+The schema is split by **access pattern**, not by entity, so subscribers
+re-render only the rows that actually change. All network data is `public` so
+passengers can read it; writes still go exclusively through reducers, and every
+mutating reducer is **admin-guarded** (see §4), so the public can read but not
+edit.
 
 | Table              | Public | Purpose                                        | Key / Index                  |
 | ------------------ | ------ | ---------------------------------------------- | ---------------------------- |
@@ -127,8 +128,6 @@ exclusively through reducers, and every mutating reducer is **admin-guarded**
 | `route_stop`       | yes    | Join table ordering stops along a route        | `(routeId, stopId)` (btree)  |
 | `fare`             | yes    | Route-level (terminus) fare for route cards    | `routeId` (pk)               |
 | `route_fare`       | yes    | Per-stop fare to reach each stop from St. John's | `(routeId, stopId)` (btree) |
-| `vehicle`          | no     | A bus: plate, assigned route                   | `id` (pk, autoInc), `routeId` (idx) |
-| `vehicle_position` | yes    | Live lat/lng/heading of a vehicle (high churn) | `vehicleId` (pk)             |
 | `admin`            | yes    | Identities allowed to edit the network         | `identity` (pk)              |
 
 ### Why the tables are shaped this way
@@ -141,18 +140,15 @@ exclusively through reducers, and every mutating reducer is **admin-guarded**
   (the source data from busstopanu.com is a fare table per route). `fare` keeps a
   single route-level figure (the terminus fare) for the route cards. Both are in
   **cents** (`t.u16()`), so `EC$ 2.25` is stored as `225`.
-- **Positions are isolated.** `vehicle_position` changes every few seconds while
-  `route`/`bus_stop` almost never change. Mixing them would force clients to
-  re-render slow tables on every GPS tick, so they live apart.
-- **`vehicle` is private.** Plate/route assignment isn't exposed to clients yet;
-  only the derived `vehicle_position` is public.
+- **`admin` gates writes.** It holds the identities allowed to edit, and every
+  mutating reducer checks it before touching data (see §4).
 
 Schema notes:
 - `id` columns use `t.u64()` with `.primaryKey().autoInc()`, inserting `0n` as a
   placeholder.
 - `route.number` is a **string**, because route numbers are alphanumeric (`29B`,
   `40B`, `41B`).
-- Coordinates are `t.f32()`; `updatedAt` is `t.timestamp()`.
+- Coordinates are `t.f32()`.
 
 ---
 
@@ -170,14 +166,13 @@ and exported (the export name becomes the reducer name). CLI calls use the
 | `deleteRoute`     | `routeId`                                          | Cascade-delete the route's `route_stop`, `fare` and `route_fare` rows, then the `route` |
 | `setFare`         | `routeId, adult, child, night`                     | Upsert the route-level `fare`                                       |
 | `setRouteFare`    | `routeId, stopId, adult, child, night`             | Upsert the per-stop `route_fare`                                    |
-| `reportPosition`  | `vehicleId, lat, lng, heading`                     | Upsert `vehicle_position`, stamp `updatedAt` with `ctx.timestamp`   |
 | `claimAdmin`      | _none_                                             | One-time bootstrap: first caller (while `admin` is empty) becomes the admin |
 
 ### Authorization (read-only public data)
 
 The network is **read-only to the public**. Every mutating reducer
 (`addRoute`, `addStop`, `addStopToRoute`, `deleteRoute`, `setFare`,
-`setRouteFare`, `reportPosition`) starts with `assertAdmin(ctx)`, which looks the
+`setRouteFare`) starts with `assertAdmin(ctx)`, which looks the
 caller's `ctx.sender` up in the `admin` table and throws `SenderError` if it is
 absent. Because enforcement lives inside the reducer, hiding the Admin UI is only
 cosmetic — a crafted client still can't write.
@@ -243,21 +238,22 @@ A single-page shell with tabs. It subscribes once to every table the UI needs:
 ```
 useTable(tables.route)            useTable(tables.fare)
 useTable(tables.busStop)          useTable(tables.routeFare)
-useTable(tables.routeStop)        useTable(tables.vehiclePosition)
-useTable(tables.admin)            // gates the Admin tab on the caller's identity
+useTable(tables.routeStop)        useTable(tables.admin)
 ```
 
 The rows are passed down to the views; the UI never waits on a return value.
 `App` compares the current `identity` against the `admin` rows to decide whether
-the Admin tab is shown.
+the Admin tab is shown, and uses the hook's `isReady` flag to show a loading
+state until the initial subscription replay has landed.
 
 ### Views (`src/components/`)
 
 - **`Header`** — black bar with a flag stripe and the tab nav.
-- **`JourneyPlanner`** — "I am here / going to" selects; renders itinerary cards
-  with per-leg and total fares.
-- **`MapView`** — Leaflet map: blue stop markers, a colored polyline per route,
-  and red bus markers rotated by heading, with layer toggles.
+- **`JourneyPlanner`** — searchable "I am here / going to" stop pickers; renders
+  itinerary cards with per-leg and total fares. The chosen journey is remembered
+  and reflected in the URL.
+- **`MapView`** — Leaflet map: blue stop markers and a colored polyline per route,
+  with layer toggles. Loaded lazily so Leaflet stays out of the initial bundle.
 - **`RoutesView`** — route cards; expanding one lists its ordered stops with each
   stop's fare.
 - **`StopsView`** — searchable stop list (coordinates hidden; "Location pending"
@@ -324,8 +320,8 @@ useTable(tables.busStop) re-renders with the new stop
 
 ## 6. Public data access
 
-The data is open. Everything except the private `vehicle` table can be read by
-anyone, and the app ships a **Data** page (`DataView`) that packages it for reuse.
+The data is open. Every table can be read by anyone, and the app ships a **Data**
+page (`DataView`) that packages it for reuse.
 
 ### In-app downloads
 
@@ -366,11 +362,11 @@ data but never modify it. Coordinates are approximate for a handful of stops, an
 | --------- | ------------------------- | ----------- | -------------------------------------------------------- |
 | M1        | Routes + stops            | **Done**    | CRUD skeleton + full network seeded (23 routes, 87 stops)|
 | M1.5      | Fares                     | **Done**    | Route-level + per-stop fares, journey totals             |
-| M2        | Vehicles + live positions | **Partial** | `vehicle` + `vehicle_position` + `reportPosition` exist; `createVehicle` / `assignVehicleToRoute` still TODO |
-| M3        | Simulated movement        | Pending     | Scheduled `tick`; positions animate on the map           |
+| M2        | Vehicles + live positions | **Dropped** | Out of scope — the `vehicle` / `vehicle_position` tables and `reportPosition` reducer were removed |
+| M3        | Simulated movement        | **Dropped** | Depended on M2                                           |
 | M4        | Auth + roles              | **Partial** | Public data is read-only: admin allow-list + `assertAdmin` guards + `claimAdmin` landed. Driver-specific roles still TODO. |
-| M5        | Real GPS ingestion        | Pending     | Procedure + `ctx.withTx`                                 |
-| M6        | ETA computation           | Pending     | Estimates derived from tick/schedule data                |
+| M5        | Real GPS ingestion        | Dropped     | Depended on vehicle tracking                             |
+| M6        | ETA computation           | Pending     | Estimates would need schedule data                       |
 
 ### Known data gaps
 

@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
+/* Class-based dark mode: `dark:` applies when `.dark` is on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
+  /* Softened white: pure #ffffff reads harsh across full-page surfaces, so the
+     light theme uses a gentle off-white instead. */
+  --color-white: #fafafa;
+
   /* Heritage palette (Antigua & Barbuda):
      red #d32630 · black #000000 · blue #407fc9 · white #ffffff · yellow #f4d840 */
   --color-brand-50: #eef4fb;
@@ -14,6 +21,9 @@
   --color-brand-800: #234469;
   --color-brand-900: #1e3956;
 
+  --color-sun-50: #fefbe8;
+  --color-sun-100: #fdf6c9;
+  --color-sun-200: #fbec96;
   --color-sun-400: #f8e470;
   --color-sun-500: #f4d840;
   --color-sun-600: #d9bc22;
@@ -36,4 +46,34 @@ body,
 
 body {
   margin: 0;
+}
+
+/* Keep native UI (scrollbars, form controls) in step with the theme. */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Theme Leaflet's built-in popups and controls to match dark mode. */
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark .leaflet-bar a {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.8);
+  color: #94a3b8;
+}
+
+.dark .leaflet-control-attribution a {
+  color: #93b8e6;
 }

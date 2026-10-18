@@ -79,23 +79,25 @@ export default function MapView({ stops, routes, routeStops, vehiclePositions }:
             onClick={() => item.set(!item.on)}
             className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
               item.on
-                ? 'border-slate-200 bg-white text-slate-700 shadow-sm'
-                : 'border-slate-200 bg-slate-100 text-slate-400'
+                ? 'border-slate-200 bg-white text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                : 'border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500'
             }`}
           >
             <span className={`h-3 w-3 rounded-full ${item.swatch} ${item.on ? '' : 'opacity-30'}`} />
             {item.label}
           </button>
         ))}
-        <span className="ml-auto text-xs text-slate-400">Centered on St. John's, Antigua</span>
+        <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">
+          Centered on St. John's, Antigua
+        </span>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm dark:border-slate-800">
         <MapContainer
           center={ANTIGUA_CENTER}
           zoom={11}
           scrollWheelZoom
-          className="h-[68vh] min-h-[420px] w-full"
+          className="h-[60vh] min-h-[360px] w-full sm:h-[68vh] sm:min-h-[420px]"
         >
           <TileLayer url={OSM_URL} attribution={OSM_ATTRIB} />
 
@@ -112,7 +114,9 @@ export default function MapView({ stops, routes, routeStops, vehiclePositions }:
             mappedStops.map(stop => (
               <Marker key={String(stop.id)} position={[stop.lat, stop.lng]} icon={stopIcon}>
                 <Popup>
-                  <span className="font-semibold text-slate-800">{stop.name}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    {stop.name}
+                  </span>
                 </Popup>
               </Marker>
             ))}
@@ -125,14 +129,16 @@ export default function MapView({ stops, routes, routeStops, vehiclePositions }:
                 icon={vehicleIcon(vp.heading)}
               >
                 <Popup>
-                  <span className="font-semibold text-slate-800">Bus {Number(vp.vehicleId)}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    Bus {Number(vp.vehicleId)}
+                  </span>
                 </Popup>
               </Marker>
             ))}
         </MapContainer>
       </div>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500">
         Basemap © OpenStreetMap contributors. {stops.length - mappedStops.length} stop(s) hidden
         (location pending).
       </p>

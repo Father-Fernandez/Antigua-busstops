@@ -1,9 +1,21 @@
-import { t, SenderError } from 'spacetimedb/server';
+import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import spacetimedb from './schema';
 import { STOPS, ROUTES } from './seed';
 
 // This file is the module entry point; the tables live in ./schema.ts.
 export { default } from './schema';
+
+type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
+
+/**
+ * The bus network is read-only to the public. Every mutating reducer calls this
+ * so only identities listed in the `admin` table can add, change or delete data.
+ */
+function assertAdmin(ctx: Ctx): void {
+  if (!ctx.db.admin.identity.find(ctx.sender)) {
+    throw new SenderError('Not authorized: only admins can edit the bus network');
+  }
+}
 
 export const init = spacetimedb.init(ctx => {
   // Called once when the module is first published. Seed the known Antigua
@@ -57,6 +69,18 @@ export const init = spacetimedb.init(ctx => {
   }
 });
 
+/**
+ * One-time bootstrap: the first identity to call this becomes the admin, after
+ * which the door closes for everyone else. Run it once from the owner's browser
+ * right after publishing.
+ */
+export const claimAdmin = spacetimedb.reducer(ctx => {
+  if ([...ctx.db.admin.iter()].length > 0) {
+    throw new SenderError('An admin has already been claimed for this database');
+  }
+  ctx.db.admin.insert({ identity: ctx.sender });
+});
+
 export const onConnect = spacetimedb.clientConnected(_ctx => {
   // Called every time a new client connects
 });
@@ -74,6 +98,7 @@ export const addRoute = spacetimedb.reducer(
     description: t.string(),
   },
   (ctx, { number, name, terminus, color, description }) => {
+    assertAdmin(ctx);
     ctx.db.route.insert({ id: 0n, number, name, terminus, color, description });
   }
 );
@@ -81,6 +106,7 @@ export const addRoute = spacetimedb.reducer(
 export const addStop = spacetimedb.reducer(
   { name: t.string(), lat: t.f32(), lng: t.f32() },
   (ctx, { name, lat, lng }) => {
+    assertAdmin(ctx);
     if (!Number.isFinite(lat) || lat < -90 || lat > 90)
       throw new SenderError('lat must be between -90 and 90');
     if (!Number.isFinite(lng) || lng < -180 || lng > 180)
@@ -93,6 +119,7 @@ export const addStop = spacetimedb.reducer(
 export const addStopToRoute = spacetimedb.reducer(
   { routeId: t.u64(), stopId: t.u64(), sequence: t.u32() },
   (ctx, { routeId, stopId, sequence }) => {
+    assertAdmin(ctx);
     const existing = [...ctx.db.routeStop.by_route_stop.filter([routeId, stopId])];
     if (existing.length > 0)
       throw new SenderError('Stop is already on this route');
@@ -104,6 +131,7 @@ export const addStopToRoute = spacetimedb.reducer(
 export const deleteRoute = spacetimedb.reducer(
   { routeId: t.u64() },
   (ctx, { routeId }) => {
+    assertAdmin(ctx);
     const route = ctx.db.route.id.find(routeId);
     if (!route) throw new SenderError('Route not found');
 
@@ -126,6 +154,7 @@ export const deleteRoute = spacetimedb.reducer(
 export const setFare = spacetimedb.reducer(
   { routeId: t.u64(), adult: t.u16(), child: t.u16(), night: t.u16() },
   (ctx, { routeId, adult, child, night }) => {
+    assertAdmin(ctx);
     const existing = ctx.db.fare.routeId.find(routeId);
     if (existing) {
       ctx.db.fare.routeId.update({ routeId, adult, child, night });
@@ -138,6 +167,7 @@ export const setFare = spacetimedb.reducer(
 export const setRouteFare = spacetimedb.reducer(
   { routeId: t.u64(), stopId: t.u64(), adult: t.u16(), child: t.u16(), night: t.u16() },
   (ctx, { routeId, stopId, adult, child, night }) => {
+    assertAdmin(ctx);
     const existing = [...ctx.db.routeFare.by_route_stop.filter([routeId, stopId])][0];
     if (existing) {
       ctx.db.routeFare.id.update({ ...existing, adult, child, night });
@@ -150,6 +180,7 @@ export const setRouteFare = spacetimedb.reducer(
 export const reportPosition = spacetimedb.reducer(
   { vehicleId: t.u64(), lat: t.f32(), lng: t.f32(), heading: t.f32() },
   (ctx, { vehicleId, lat, lng, heading }) => {
+    assertAdmin(ctx);
     const updatedAt = ctx.timestamp;
     const existing = ctx.db.vehiclePosition.vehicleId.find(vehicleId);
 

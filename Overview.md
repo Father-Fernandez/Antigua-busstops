@@ -84,12 +84,18 @@ bus-system/
 │   ├── App.tsx                     # Page shell + useTable subscriptions
 │   ├── index.css                   # Tailwind v4 + heritage @theme palette
 │   ├── lib/
-│   │   └── journey.ts              # Journey planning + fare helpers
+│   │   ├── journey.ts              # Journey planning + fare helpers
+│   │   ├── config.ts               # Runtime SpacetimeDB host / database
+│   │   ├── weather.ts              # Antigua weather (Open-Meteo, no key)
+│   │   ├── links.ts                # Links to the original busstopanu.com pages
+│   │   └── export.ts               # JSON/CSV dataset builders for downloads
 │   ├── components/                 # Header, JourneyPlanner, MapView, RoutesView,
-│   │                               #   StopsView, AdminView, AboutView, Footer
+│   │                               #   StopsView, DataView, AdminView, AboutView,
+│   │                               #   WeatherCard, LegacyLinks, Footer
 │   └── module_bindings/            # Auto-generated types mirroring the module
 ├── .env                            # VITE_SPACETIMEDB_HOST / _DB_NAME
 ├── spacetime.json                  # CLI project config (server, database, paths)
+├── Dockerfile / docker/            # Multi-stage image (Node build → nginx)
 └── package.json                    # Dev/build/generate scripts
 ```
 
@@ -111,7 +117,8 @@ npm run spacetime:generate
 The schema is split by **access pattern**, not by entity. Transient, high-churn
 data is kept in its own table so subscribers only re-render rows that actually
 change. All network data is `public` so passengers can read it; writes still go
-exclusively through reducers.
+exclusively through reducers, and every mutating reducer is **admin-guarded**
+(see §4), so the public can read but not edit.
 
 | Table              | Public | Purpose                                        | Key / Index                  |
 | ------------------ | ------ | ---------------------------------------------- | ---------------------------- |
@@ -122,6 +129,7 @@ exclusively through reducers.
 | `route_fare`       | yes    | Per-stop fare to reach each stop from St. John's | `(routeId, stopId)` (btree) |
 | `vehicle`          | no     | A bus: plate, assigned route                   | `id` (pk, autoInc), `routeId` (idx) |
 | `vehicle_position` | yes    | Live lat/lng/heading of a vehicle (high churn) | `vehicleId` (pk)             |
+| `admin`            | yes    | Identities allowed to edit the network         | `identity` (pk)              |
 
 ### Why the tables are shaped this way
 
@@ -163,6 +171,30 @@ and exported (the export name becomes the reducer name). CLI calls use the
 | `setFare`         | `routeId, adult, child, night`                     | Upsert the route-level `fare`                                       |
 | `setRouteFare`    | `routeId, stopId, adult, child, night`             | Upsert the per-stop `route_fare`                                    |
 | `reportPosition`  | `vehicleId, lat, lng, heading`                     | Upsert `vehicle_position`, stamp `updatedAt` with `ctx.timestamp`   |
+| `claimAdmin`      | _none_                                             | One-time bootstrap: first caller (while `admin` is empty) becomes the admin |
+
+### Authorization (read-only public data)
+
+The network is **read-only to the public**. Every mutating reducer
+(`addRoute`, `addStop`, `addStopToRoute`, `deleteRoute`, `setFare`,
+`setRouteFare`, `reportPosition`) starts with `assertAdmin(ctx)`, which looks the
+caller's `ctx.sender` up in the `admin` table and throws `SenderError` if it is
+absent. Because enforcement lives inside the reducer, hiding the Admin UI is only
+cosmetic — a crafted client still can't write.
+
+`claimAdmin` is the bootstrap: it succeeds only while the `admin` table is empty,
+so the first identity to call it (from the owner's browser, right after
+publishing) becomes the admin. After that it is closed to everyone else.
+
+```ts
+type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
+
+function assertAdmin(ctx: Ctx): void {
+  if (!ctx.db.admin.identity.find(ctx.sender)) {
+    throw new SenderError('Not authorized: only admins can edit the bus network');
+  }
+}
+```
 
 **Validation pattern** — reducer arguments are required, so validation means
 checking values are sane, then throwing `SenderError` to abort the transaction:
@@ -198,9 +230,11 @@ route-level `fare` row (the terminus fare). Republishing with
 ### Connection (`src/main.tsx`)
 
 A `DbConnection` is built once and handed to `SpacetimeDBProvider`. The host and
-database come from Vite env vars (`VITE_SPACETIMEDB_HOST`,
-`VITE_SPACETIMEDB_DB_NAME`), with maincloud defaults as fallback. The auth token
-is cached in `localStorage` so the same identity is reused across reloads.
+database are resolved in `lib/config.ts`: runtime config injected by the container
+(`window.__ENV__`) wins, then the build-time Vite env vars
+(`VITE_SPACETIMEDB_HOST`, `VITE_SPACETIMEDB_DB_NAME`), then the maincloud
+defaults. The auth token is cached in `localStorage` so the same identity is
+reused across reloads — which is what lets an admin stay an admin.
 
 ### Page shell (`src/App.tsx`)
 
@@ -210,9 +244,12 @@ A single-page shell with tabs. It subscribes once to every table the UI needs:
 useTable(tables.route)            useTable(tables.fare)
 useTable(tables.busStop)          useTable(tables.routeFare)
 useTable(tables.routeStop)        useTable(tables.vehiclePosition)
+useTable(tables.admin)            // gates the Admin tab on the caller's identity
 ```
 
 The rows are passed down to the views; the UI never waits on a return value.
+`App` compares the current `identity` against the `admin` rows to decide whether
+the Admin tab is shown.
 
 ### Views (`src/components/`)
 
@@ -225,18 +262,27 @@ The rows are passed down to the views; the UI never waits on a return value.
   stop's fare.
 - **`StopsView`** — searchable stop list (coordinates hidden; "Location pending"
   tag for un-geocoded stops).
-- **`AdminView`** — add/delete routes, set route-level and per-stop fares, add
-  stops to routes.
-- **`AboutView`** / **`Footer`** — static info.
+- **`WeatherCard`** — current weather for St. John's, fetched from Open-Meteo (no
+  API key) in the browser.
+- **`DataView`** — the public data page: JSON/CSV downloads, connection details,
+  CLI/SQL examples and a table reference.
+- **`AdminView`** — admin-only: add/delete routes, set route-level and per-stop
+  fares, add stops to routes. Non-admins see an "admins only" notice; if no admin
+  has been claimed yet, it offers the one-time claim.
+- **`LegacyLinks`** — grid of links to the original busstopanu.com pages, all
+  `target="_blank" rel="noopener noreferrer"`.
+- **`AboutView`** / **`Footer`** — static info plus the legacy links.
 
 ### Journey planning & fares (`src/lib/journey.ts`)
 
 - `buildRouteStopMap` / `stopsForRoute` — order a route's stops by `sequence`.
 - `buildRouteFareMap` / `fareToStop` — index per-stop fares by `routeId:stopId`.
   St. John's is the $0 origin (it has no `route_fare` row).
-- `segmentFare` — price one leg as the **difference from the capital**:
-  `|fareTo(to) − fareTo(from)|`. So St. John's → Horsford Hill is the full $3.00,
-  while Belmont → Horsford Hill is $0.75.
+- `segmentFare` — price one leg as the fare of whichever endpoint is **farther
+  from the capital**: `max(fareTo(from), fareTo(to))`. You pay per bus boarded, for
+  the distance covered while on it, so a stop on the way to St. John's never costs
+  more than your boarding stop. Cedar Grove → Friars Hill Road (on the way in) is
+  EC$2.50, not $0.
 - `planJourney` — finds direct routes first, then one-transfer itineraries joined
   at a shared stop (which, since every route starts at St. John's, is usually
   St. John's itself). Totals are the **sum of the leg fares**.
@@ -276,7 +322,45 @@ useTable(tables.busStop) re-renders with the new stop
 
 ---
 
-## 6. Milestone map
+## 6. Public data access
+
+The data is open. Everything except the private `vehicle` table can be read by
+anyone, and the app ships a **Data** page (`DataView`) that packages it for reuse.
+
+### In-app downloads
+
+- **Everything (JSON)** — one self-describing snapshot: routes (with ordered stops
+  and fares), stops with coordinates, source host/database, and generated-at date.
+- **Routes / Stops / Route fares (CSV)** — flat files for spreadsheets.
+
+### Query the live database
+
+The database is on SpacetimeDB Maincloud
+(`wss://maincloud.spacetimedb.com`, database `bus-system-qcj1z`). Any SpacetimeDB
+client can read it:
+
+```bash
+spacetime sql bus-system-qcj1z "SELECT number, name, terminus FROM route"
+spacetime sql bus-system-qcj1z "SELECT name, lat, lng FROM bus_stop"
+spacetime sql bus-system-qcj1z "SELECT * FROM route_fare"
+```
+
+or subscribe from the TypeScript SDK:
+
+```ts
+DbConnection.builder()
+  .withUri('wss://maincloud.spacetimedb.com')
+  .withDatabaseName('bus-system-qcj1z')
+  .subscribe(['route', 'bus_stop', 'route_stop', 'fare', 'route_fare']);
+```
+
+Reads are unrestricted; writes are admin-only (§4), so the public can mirror the
+data but never modify it. Coordinates are approximate for a handful of stops, and
+`(0, 0)` marks a stop that hasn't been placed yet.
+
+---
+
+## 7. Milestone map
 
 | Milestone | Theme                     | Status      | Deliverable                                              |
 | --------- | ------------------------- | ----------- | -------------------------------------------------------- |
@@ -284,7 +368,7 @@ useTable(tables.busStop) re-renders with the new stop
 | M1.5      | Fares                     | **Done**    | Route-level + per-stop fares, journey totals             |
 | M2        | Vehicles + live positions | **Partial** | `vehicle` + `vehicle_position` + `reportPosition` exist; `createVehicle` / `assignVehicleToRoute` still TODO |
 | M3        | Simulated movement        | Pending     | Scheduled `tick`; positions animate on the map           |
-| M4        | Auth + roles              | Pending     | Driver controls scoped to `ctx.sender`; riders read-only |
+| M4        | Auth + roles              | **Partial** | Public data is read-only: admin allow-list + `assertAdmin` guards + `claimAdmin` landed. Driver-specific roles still TODO. |
 | M5        | Real GPS ingestion        | Pending     | Procedure + `ctx.withTx`                                 |
 | M6        | ETA computation           | Pending     | Estimates derived from tick/schedule data                |
 
@@ -294,11 +378,13 @@ useTable(tables.busStop) re-renders with the new stop
   `Carty's Hill`) and are hidden on the map.
 - 7 stops are approximated, not survey-grade (`Clarkes Hill`, `Crabbe Hill`,
   `Free Trade Zone`, `Hattan`, `Horsford Hill`, `Longfords`, `Upper Fort Road`).
-- Admin actions are open to any connected client until M4 lands.
+- The `admin` table starts empty, so the owner must call `claimAdmin` once (via the
+  Admin tab in their browser) before anyone can edit. Until then the Admin tab
+  offers the claim to whoever opens it first.
 
 ---
 
-## 7. Debugging checklist
+## 8. Debugging checklist
 
 1. Is the SpacetimeDB server reachable? (`spacetime server ping maincloud`)
 2. Is the module published? (`spacetime publish`)

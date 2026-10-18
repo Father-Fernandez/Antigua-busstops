@@ -37,6 +37,7 @@ import {
 import AddRouteReducer from "./add_route_reducer";
 import AddStopReducer from "./add_stop_reducer";
 import AddStopToRouteReducer from "./add_stop_to_route_reducer";
+import ClaimAdminReducer from "./claim_admin_reducer";
 import DeleteRouteReducer from "./delete_route_reducer";
 import ReportPositionReducer from "./report_position_reducer";
 import SetFareReducer from "./set_fare_reducer";
@@ -45,6 +46,7 @@ import SetRouteFareReducer from "./set_route_fare_reducer";
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import AdminRow from "./admin_table";
 import BusStopRow from "./bus_stop_table";
 import FareRow from "./fare_table";
 import RouteRow from "./route_table";
@@ -56,6 +58,17 @@ import VehiclePositionRow from "./vehicle_position_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  admin: __table({
+    name: 'admin',
+    indexes: [
+      { accessor: 'identity', name: 'admin_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'admin_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, AdminRow),
   busStop: __table({
     name: 'bus_stop',
     indexes: [
@@ -137,6 +150,7 @@ const reducersSchema = __reducers(
   __reducerSchema("add_route", AddRouteReducer),
   __reducerSchema("add_stop", AddStopReducer),
   __reducerSchema("add_stop_to_route", AddStopToRouteReducer),
+  __reducerSchema("claim_admin", ClaimAdminReducer),
   __reducerSchema("delete_route", DeleteRouteReducer),
   __reducerSchema("report_position", ReportPositionReducer),
   __reducerSchema("set_fare", SetFareReducer),

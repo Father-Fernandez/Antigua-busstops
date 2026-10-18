@@ -3,6 +3,13 @@ import { schema, table, t } from 'spacetimedb/server';
 // Table keys are camelCase (so `ctx.db.busStop`); the explicit `name` keeps the
 // canonical snake_case database name (`bus_stop`) that clients and SQL use.
 const spacetimedb = schema({
+  // Identities allowed to mutate the network. Public so the client can hide the
+  // admin tools from everyone else; writing still goes through guarded reducers.
+  admin: table(
+    { public: true }, {
+      identity: t.identity().primaryKey(),
+    }
+  ),
   route: table(
     { public: true }, {
       id: t.u64().primaryKey().autoInc(),

@@ -203,8 +203,8 @@ export default function JourneyPlanner({
   const sameStop = resolveStopId.get(origin) === resolveStopId.get(dest);
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
-      <div className="bg-gradient-to-br from-brand-50 to-white px-6 py-6 dark:from-slate-900 dark:to-slate-900 sm:px-8">
+    <section className="rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+      <div className="rounded-t-3xl bg-gradient-to-br from-brand-50 to-white px-6 py-6 last:rounded-b-3xl dark:from-slate-900 dark:to-slate-900 sm:px-8">
         <h2 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 sm:text-2xl">
           Where are you going today?
         </h2>
@@ -257,7 +257,7 @@ export default function JourneyPlanner({
       </div>
 
       {submitted && (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-5 dark:border-slate-800 dark:bg-slate-900/50 sm:px-8">
+        <div className="rounded-b-3xl border-t border-slate-100 bg-slate-50/60 px-6 py-5 dark:border-slate-800 dark:bg-slate-900/50 sm:px-8">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
               {results.length > 0

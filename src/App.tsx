@@ -19,9 +19,11 @@ const MapView = lazy(() => import('./components/MapView'));
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p className="text-2xl font-extrabold text-brand-600 dark:text-brand-400">{value}</p>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-4xl font-extrabold text-brand-600 sm:text-5xl dark:text-brand-400">
+        {value}
+      </p>
+      <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
     </div>
   );
 }
@@ -36,7 +38,7 @@ function Loading() {
 }
 
 function App() {
-  const { isActive: connected, identity } = useSpacetimeDB();
+  const { identity } = useSpacetimeDB();
   const { page, params } = useHashRoute();
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -71,7 +73,6 @@ function App() {
       <Header
         page={activePage}
         onNavigate={navigate}
-        connected={connected}
         theme={theme}
         onToggleTheme={toggleTheme}
         showAdmin={canOpenAdmin}

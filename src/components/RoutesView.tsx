@@ -99,23 +99,33 @@ export default function RoutesView({ routes, routeStops, stops, fares, routeFare
                     No stops assigned to this route yet.
                   </p>
                 ) : (
-                  <ol className="relative ml-2 border-l-2 border-brand-200 dark:border-brand-800">
-                    {routeStopList.map((stop, i) => (
-                      <li key={String(stop.id)} className="mb-3 ml-4 last:mb-0">
-                        <span className="absolute -left-[7px] grid h-3 w-3 place-items-center rounded-full border-2 border-brand-500 bg-white dark:bg-slate-900" />
-                        <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
-                          Stop {i + 1}
-                        </span>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {stop.name}
-                          </p>
-                          <span className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            {formatFare(fareToStop(key, String(stop.id), routeFareMap).adult)}
+                  <ol className="ml-1">
+                    {routeStopList.map((stop, i) => {
+                      const isLast = i === routeStopList.length - 1;
+                      return (
+                        <li key={String(stop.id)} className={`relative pl-6 ${isLast ? '' : 'pb-4'}`}>
+                          {!isLast && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute bottom-0 left-[5px] top-3 border-l-2 border-dashed border-brand-300 dark:border-brand-800"
+                            />
+                          )}
+                          <span className="absolute left-0 top-1 grid h-3 w-3 place-items-center rounded-full border-2 border-brand-500 bg-white dark:bg-slate-900" />
+                          <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
+                            Stop {i + 1}
+                            {isLast && ' · terminus'}
                           </span>
-                        </div>
-                      </li>
-                    ))}
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                              {stop.name}
+                            </p>
+                            <span className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              {formatFare(fareToStop(key, String(stop.id), routeFareMap).adult)}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
                 )}
               </div>

@@ -17,7 +17,6 @@ const NAV: { id: Page; label: string }[] = [
 interface HeaderProps {
   page: Page;
   onNavigate: (page: Page) => void;
-  connected: boolean;
   theme: Theme;
   onToggleTheme: () => void;
   showAdmin: boolean;
@@ -52,7 +51,6 @@ function BusLogo() {
 export default function Header({
   page,
   onNavigate,
-  connected,
   theme,
   onToggleTheme,
   showAdmin,
@@ -85,18 +83,6 @@ export default function Header({
           </button>
 
           <div className="flex items-center gap-2">
-            <span
-              className="hidden items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/20 sm:flex"
-              title={connected ? 'Connected to the live database' : 'Not connected'}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  connected ? 'bg-emerald-400 animate-pulse' : 'bg-flag-400'
-                }`}
-              />
-              {connected ? 'Live' : 'Offline'}
-            </span>
-
             <button
               onClick={onToggleTheme}
               className="grid h-9 w-9 place-items-center rounded-lg text-white ring-1 ring-white/25 transition hover:bg-white/10"

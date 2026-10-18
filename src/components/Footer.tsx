@@ -1,14 +1,14 @@
 import FlagStripe from './FlagStripe';
 import { ExternalLink } from './LegacyLinks';
-import { LEGACY_LINKS, LEGACY_SOCIAL, OLD_SITE_URL } from '../lib/links';
+import { OLD_SITE_URL } from '../lib/links';
 
 export default function Footer() {
   return (
     <footer className="mt-12 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <FlagStripe />
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
-          <div className="max-w-md">
+        <div className="flex flex-col gap-8">
+          <div className="max-w-xl">
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-white">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
@@ -33,38 +33,22 @@ export default function Footer() {
               </ExternalLink>
             </p>
           </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              From the original site
-            </p>
-            <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
-              {LEGACY_LINKS.map(link => (
-                <li key={link.href}>
-                  <ExternalLink
-                    href={link.href}
-                    className="text-slate-600 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-400"
-                  >
-                    {link.label}
-                  </ExternalLink>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-2 border-t border-slate-100 pt-4 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>Powered by SpacetimeDB · Fares in EC$ · © {new Date().getFullYear()}</p>
-          <p className="flex items-center gap-3">
-            {LEGACY_SOCIAL.map(social => (
-              <ExternalLink
-                key={social.href}
-                href={social.href}
-                className="hover:text-brand-600 dark:hover:text-brand-400"
-              >
-                {social.label}
-              </ExternalLink>
-            ))}
+          <p>
+            See the{' '}
+            <button
+              type="button"
+              onClick={() => {
+                window.location.hash = '#/about';
+              }}
+              className="font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"
+            >
+              About
+            </button>{' '}
+            page to credit the original Bus Stop Antigua guide.
           </p>
         </div>
       </div>

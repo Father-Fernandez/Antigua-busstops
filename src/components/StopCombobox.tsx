@@ -120,7 +120,11 @@ export default function StopCombobox({ label, options, value, onChange, placehol
               return (
                 <li key={option.id} role="presentation">
                   {showGroup && option.group && (
-                    <p className="px-4 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                    <p
+                      className={`bg-slate-50/80 px-4 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-800/60 dark:text-slate-400 ${
+                        i > 0 ? 'mt-1 border-t border-slate-200 dark:border-slate-700' : ''
+                      }`}
+                    >
                       {option.group}
                     </p>
                   )}

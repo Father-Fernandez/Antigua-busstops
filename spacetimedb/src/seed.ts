@@ -462,3 +462,48 @@ export const ROUTES: SeedRoute[] = [
   },
 ];
 
+
+// Tourist destinations, each tied to its nearest seeded bus stop so the planner
+// can route to them. Coordinates are approximate; `nearestStop` is a best-effort
+// match against the stops the seeded routes actually serve.
+export type PlaceCategory = 'beach' | 'site' | 'village';
+
+export interface SeedPlace {
+  name: string;
+  category: PlaceCategory;
+  lat: number;
+  lng: number;
+  description: string;
+  nearestStop: string;
+}
+
+export const PLACES: SeedPlace[] = [
+  // Beaches
+  { name: 'Dickenson Bay', category: 'beach', lat: 17.159, lng: -61.8456, description: "Antigua's liveliest beach strip, lined with resorts, bars and watersports.", nearestStop: 'Sandals Resort' },
+  { name: 'Runaway Bay', category: 'beach', lat: 17.163, lng: -61.842, description: 'Calm north-coast bay beside Dickenson Bay, good for swimming.', nearestStop: 'Sandals Resort' },
+  { name: 'Pigeon Point Beach', category: 'beach', lat: 17.166, lng: -61.834, description: 'Sheltered north-coast beach with picnic spots and calm water.', nearestStop: 'Hodges Bay' },
+  { name: 'Fort James Beach', category: 'beach', lat: 17.135, lng: -61.858, description: "Historic beach beside Fort James, minutes from St. John's.", nearestStop: 'Green Bay' },
+  { name: 'Deep Bay Beach', category: 'beach', lat: 17.137, lng: -61.878, description: 'Quiet horseshoe bay with a shipwreck to snorkel.', nearestStop: 'Five Islands' },
+  { name: 'Hawksbill Beach', category: 'beach', lat: 17.144, lng: -61.887, description: 'Secluded bay with four crescent beaches.', nearestStop: 'Five Islands' },
+  { name: 'Jolly Beach', category: 'beach', lat: 17.094, lng: -61.886, description: 'Long white-sand beach on the west coast, popular with visitors.', nearestStop: 'Jennings' },
+  { name: 'Darkwood Beach', category: 'beach', lat: 17.066, lng: -61.895, description: 'Wide west-coast beach with views across to Montserrat.', nearestStop: 'Bolans' },
+  { name: 'Ffryes Beach', category: 'beach', lat: 17.055, lng: -61.897, description: 'Golden-sand west-coast beach with a relaxed beach bar.', nearestStop: 'Bolans' },
+  { name: 'Valley Church Beach', category: 'beach', lat: 17.062, lng: -61.886, description: 'Calm, family-friendly west-coast beach.', nearestStop: 'Bolans' },
+  { name: 'Turners Beach', category: 'beach', lat: 17.075, lng: -61.905, description: 'Quiet west-coast beach, a local favourite.', nearestStop: 'Bolans' },
+  { name: 'Crab Hill Beach', category: 'beach', lat: 17.043, lng: -61.89, description: 'South-west beach near Johnsons Point with a mellow vibe.', nearestStop: 'Crabbe Hill' },
+  { name: 'Long Bay', category: 'beach', lat: 17.093, lng: -61.7, description: 'Long east-coast beach by Willikies, good for a breezy walk.', nearestStop: 'Willikies' },
+  { name: 'Galleon Beach', category: 'beach', lat: 17.006, lng: -61.762, description: "Beach below Nelson's Dockyard in English Harbour.", nearestStop: 'English Harbour' },
+  { name: 'Rendezvous Bay', category: 'beach', lat: 17.108, lng: -61.895, description: 'Remote bay best reached on foot from Five Islands.', nearestStop: 'Five Islands' },
+
+  // Sites & attractions
+  { name: "Nelson's Dockyard", category: 'site', lat: 17.008, lng: -61.764, description: 'Restored Georgian naval dockyard and a UNESCO World Heritage Site.', nearestStop: 'English Harbour' },
+  { name: 'Shirley Heights', category: 'site', lat: 17.003, lng: -61.764, description: 'Hilltop lookout over English Harbour, famous for its Sunday sunset party.', nearestStop: 'English Harbour' },
+  { name: "Devil's Bridge", category: 'site', lat: 17.111, lng: -61.7, description: 'Natural limestone arch carved by the Atlantic, near Willikies.', nearestStop: 'Willikies' },
+  { name: "Betty's Hope", category: 'site', lat: 17.0627, lng: -61.7662, description: 'Restored 1650s sugar plantation and its twin windmills.', nearestStop: 'Pares' },
+  { name: 'Fig Tree Drive', category: 'site', lat: 17.036, lng: -61.809, description: "Scenic rainforest road through the island's interior.", nearestStop: 'Swetes' },
+  { name: 'Mount Obama (Boggy Peak)', category: 'site', lat: 17.056, lng: -61.805, description: "Antigua's highest point, with island-wide views.", nearestStop: 'Swetes' },
+  { name: 'Cathedral of St. John the Divine', category: 'site', lat: 17.118, lng: -61.846, description: "Twin-towered Anglican cathedral in central St. John's.", nearestStop: 'St. Johns' },
+  { name: 'Museum of Antigua & Barbuda', category: 'site', lat: 17.121, lng: -61.844, description: "Island history and heritage in the old St. John's courthouse.", nearestStop: 'St. Johns' },
+  { name: 'Fort Barrington', category: 'site', lat: 17.129, lng: -61.858, description: "18th-century fort on Goat Hill guarding St. John's harbour.", nearestStop: 'St. Johns' },
+  { name: 'Public Market', category: 'site', lat: 17.119, lng: -61.843, description: "Bustling market hall in downtown St. John's.", nearestStop: 'St. Johns' },
+];

@@ -6,6 +6,7 @@ import type { Page } from '../lib/router';
 const NAV: { id: Page; label: string }[] = [
   { id: 'planner', label: 'Journey Planner' },
   { id: 'map', label: 'Map' },
+  { id: 'explore', label: 'Explore' },
   { id: 'routes', label: 'Bus Routes' },
   { id: 'stops', label: 'Bus Stops' },
   { id: 'data', label: 'Data' },

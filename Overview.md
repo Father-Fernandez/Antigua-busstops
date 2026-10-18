@@ -77,7 +77,7 @@ bus-system/
 ├── spacetimedb/                    # The server-side module (runs inside SpacetimeDB)
 │   └── src/
 │       ├── index.ts                # Tables, reducers, lifecycle hooks, init seeding
-│       └── seed.ts                 # STOPS (87) + ROUTES (23) seed data
+│       └── seed.ts                 # STOPS (87) + ROUTES (23) + PLACES (25) seed data
 ├── src/                            # The React client
 │   ├── main.tsx                    # Connection setup + SpacetimeDBProvider
 │   ├── App.tsx                     # Page shell + useTable subscriptions
@@ -85,14 +85,17 @@ bus-system/
 │   ├── lib/
 │   │   ├── journey.ts              # Journey planning + fare helpers
 │   │   ├── journey.test.ts         # Vitest coverage for the fare/planner logic
+│   │   ├── places.ts               # Place categories, grouping, helpers
+│   │   ├── places.test.ts          # Vitest coverage for place helpers
 │   │   ├── router.ts               # Hash routing (`#/page?from=&to=`) + deep links
 │   │   ├── config.ts               # Runtime SpacetimeDB host / database
 │   │   ├── weather.ts              # Antigua weather (Open-Meteo, no key)
 │   │   ├── links.ts                # Links to the original busstopanu.com pages
 │   │   └── export.ts               # JSON/CSV dataset builders for downloads
-│   ├── components/                 # Header, JourneyPlanner, MapView, RoutesView,
-│   │                               #   StopsView, DataView, AdminView, AboutView,
-│   │                               #   WeatherCard, LegacyLinks, Footer
+│   ├── components/                 # Header, JourneyPlanner, StopCombobox, MapView,
+│   │                               #   ExploreView, RoutesView, StopsView, DataView,
+│   │                               #   AdminView, AboutView, WeatherCard,
+│   │                               #   LegacyLinks, Footer
 │   └── module_bindings/            # Auto-generated types mirroring the module
 ├── .env                            # VITE_SPACETIMEDB_HOST / _DB_NAME
 ├── spacetime.json                  # CLI project config (server, database, paths)
@@ -128,6 +131,7 @@ edit.
 | `route_stop`       | yes    | Join table ordering stops along a route        | `(routeId, stopId)` (btree)  |
 | `fare`             | yes    | Route-level (terminus) fare for route cards    | `routeId` (pk)               |
 | `route_fare`       | yes    | Per-stop fare to reach each stop from St. John's | `(routeId, stopId)` (btree) |
+| `place`            | yes    | Beach / site / village destination, tied to its nearest stop | `id` (pk, autoInc), `nearestStopId` (idx) |
 | `admin`            | yes    | Identities allowed to edit the network         | `identity` (pk)              |
 
 ### Why the tables are shaped this way
@@ -140,6 +144,10 @@ edit.
   (the source data from busstopanu.com is a fare table per route). `fare` keeps a
   single route-level figure (the terminus fare) for the route cards. Both are in
   **cents** (`t.u16()`), so `EC$ 2.25` is stored as `225`.
+- **`place` links tourist content to the network.** A beach or landmark isn't a
+  bus stop, but riders still want to reach it, so each place points at its
+  nearest stop (`nearestStopId`, `0` when unassigned). The planner accepts places
+  and resolves them to that stop, so no routing logic had to change.
 - **`admin` gates writes.** It holds the identities allowed to edit, and every
   mutating reducer checks it before touching data (see §4).
 
@@ -166,13 +174,15 @@ and exported (the export name becomes the reducer name). CLI calls use the
 | `deleteRoute`     | `routeId`                                          | Cascade-delete the route's `route_stop`, `fare` and `route_fare` rows, then the `route` |
 | `setFare`         | `routeId, adult, child, night`                     | Upsert the route-level `fare`                                       |
 | `setRouteFare`    | `routeId, stopId, adult, child, night`             | Upsert the per-stop `route_fare`                                    |
+| `addPlace`        | `name, category, lat, lng, description, nearestStopId` | Validate + insert a destination; `nearestStopId` must match a stop (or be 0) |
+| `deletePlace`     | `placeId`                                          | Delete a destination                                                |
 | `claimAdmin`      | _none_                                             | One-time bootstrap: first caller (while `admin` is empty) becomes the admin |
 
 ### Authorization (read-only public data)
 
 The network is **read-only to the public**. Every mutating reducer
 (`addRoute`, `addStop`, `addStopToRoute`, `deleteRoute`, `setFare`,
-`setRouteFare`) starts with `assertAdmin(ctx)`, which looks the
+`setRouteFare`, `addPlace`, `deletePlace`) starts with `assertAdmin(ctx)`, which looks the
 caller's `ctx.sender` up in the `admin` table and throws `SenderError` if it is
 absent. Because enforcement lives inside the reducer, hiding the Admin UI is only
 cosmetic — a crafted client still can't write.
@@ -239,6 +249,7 @@ A single-page shell with tabs. It subscribes once to every table the UI needs:
 useTable(tables.route)            useTable(tables.fare)
 useTable(tables.busStop)          useTable(tables.routeFare)
 useTable(tables.routeStop)        useTable(tables.admin)
+useTable(tables.place)            // beaches / sites / villages
 ```
 
 The rows are passed down to the views; the UI never waits on a return value.
@@ -249,11 +260,15 @@ state until the initial subscription replay has landed.
 ### Views (`src/components/`)
 
 - **`Header`** — black bar with a flag stripe and the tab nav.
-- **`JourneyPlanner`** — searchable "I am here / going to" stop pickers; renders
-  itinerary cards with per-leg and total fares. The chosen journey is remembered
-  and reflected in the URL.
-- **`MapView`** — Leaflet map: blue stop markers and a colored polyline per route,
-  with layer toggles. Loaded lazily so Leaflet stays out of the initial bundle.
+- **`JourneyPlanner`** — searchable "I am here / going to" pickers that offer both
+  bus stops *and* places (grouped by category); renders itinerary cards with
+  per-leg and total fares. The chosen journey is remembered and reflected in the URL.
+- **`ExploreView`** — destinations grouped by category (beaches, sites, villages),
+  each showing its nearest stop and a "Plan a bus" button that deep-links into the
+  planner.
+- **`MapView`** — Leaflet map: blue stop markers, a coloured polyline per route,
+  and category-coloured place markers, with layer toggles. Loaded lazily so Leaflet
+  stays out of the initial bundle.
 - **`RoutesView`** — route cards; expanding one lists its ordered stops with each
   stop's fare.
 - **`StopsView`** — searchable stop list (coordinates hidden; "Location pending"
@@ -326,8 +341,9 @@ page (`DataView`) that packages it for reuse.
 ### In-app downloads
 
 - **Everything (JSON)** — one self-describing snapshot: routes (with ordered stops
-  and fares), stops with coordinates, source host/database, and generated-at date.
-- **Routes / Stops / Route fares (CSV)** — flat files for spreadsheets.
+  and fares), stops with coordinates, places, source host/database, and
+  generated-at date.
+- **Routes / Stops / Route fares / Places (CSV)** — flat files for spreadsheets.
 
 ### Query the live database
 
@@ -347,7 +363,7 @@ or subscribe from the TypeScript SDK:
 DbConnection.builder()
   .withUri('wss://maincloud.spacetimedb.com')
   .withDatabaseName('bus-system-qcj1z')
-  .subscribe(['route', 'bus_stop', 'route_stop', 'fare', 'route_fare']);
+  .subscribe(['route', 'bus_stop', 'route_stop', 'fare', 'route_fare', 'place']);
 ```
 
 Reads are unrestricted; writes are admin-only (§4), so the public can mirror the
@@ -367,6 +383,7 @@ data but never modify it. Coordinates are approximate for a handful of stops, an
 | M4        | Auth + roles              | **Partial** | Public data is read-only: admin allow-list + `assertAdmin` guards + `claimAdmin` landed. Driver-specific roles still TODO. |
 | M5        | Real GPS ingestion        | Dropped     | Depended on vehicle tracking                             |
 | M6        | ETA computation           | Pending     | Estimates would need schedule data                       |
+| M7        | Destinations              | **Done**    | Beaches & sites with nearest-stop links, Explore page, map layer, planner integration |
 
 ### Known data gaps
 

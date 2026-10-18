@@ -34,10 +34,12 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AddPlaceReducer from "./add_place_reducer";
 import AddRouteReducer from "./add_route_reducer";
 import AddStopReducer from "./add_stop_reducer";
 import AddStopToRouteReducer from "./add_stop_to_route_reducer";
 import ClaimAdminReducer from "./claim_admin_reducer";
+import DeletePlaceReducer from "./delete_place_reducer";
 import DeleteRouteReducer from "./delete_route_reducer";
 import SetFareReducer from "./set_fare_reducer";
 import SetRouteFareReducer from "./set_route_fare_reducer";
@@ -48,6 +50,7 @@ import SetRouteFareReducer from "./set_route_fare_reducer";
 import AdminRow from "./admin_table";
 import BusStopRow from "./bus_stop_table";
 import FareRow from "./fare_table";
+import PlaceRow from "./place_table";
 import RouteRow from "./route_table";
 import RouteFareRow from "./route_fare_table";
 import RouteStopRow from "./route_stop_table";
@@ -89,6 +92,20 @@ const tablesSchema = __schema({
       { name: 'fare_route_id_key', constraint: 'unique', columns: ['routeId'] },
     ],
   }, FareRow),
+  place: __table({
+    name: 'place',
+    indexes: [
+      { accessor: 'id', name: 'place_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'nearestStopId', name: 'place_nearest_stop_id_idx_btree', algorithm: 'btree', columns: [
+        'nearestStopId',
+      ] },
+    ],
+    constraints: [
+      { name: 'place_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, PlaceRow),
   route: __table({
     name: 'route',
     indexes: [
@@ -134,10 +151,12 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("add_place", AddPlaceReducer),
   __reducerSchema("add_route", AddRouteReducer),
   __reducerSchema("add_stop", AddStopReducer),
   __reducerSchema("add_stop_to_route", AddStopToRouteReducer),
   __reducerSchema("claim_admin", ClaimAdminReducer),
+  __reducerSchema("delete_place", DeletePlaceReducer),
   __reducerSchema("delete_route", DeleteRouteReducer),
   __reducerSchema("set_fare", SetFareReducer),
   __reducerSchema("set_route_fare", SetRouteFareReducer),

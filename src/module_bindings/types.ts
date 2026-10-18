@@ -31,6 +31,17 @@ export const Fare = __t.object("Fare", {
 });
 export type Fare = __Infer<typeof Fare>;
 
+export const Place = __t.object("Place", {
+  id: __t.u64(),
+  name: __t.string(),
+  category: __t.string(),
+  lat: __t.f32(),
+  lng: __t.f32(),
+  description: __t.string(),
+  nearestStopId: __t.u64(),
+});
+export type Place = __Infer<typeof Place>;
+
 export const Route = __t.object("Route", {
   id: __t.u64(),
   number: __t.string(),

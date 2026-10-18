@@ -1,6 +1,6 @@
 import { t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import spacetimedb from './schema';
-import { STOPS, ROUTES } from './seed';
+import { STOPS, ROUTES, PLACES } from './seed';
 
 // This file is the module entry point; the tables live in ./schema.ts.
 export { default } from './schema';
@@ -66,6 +66,22 @@ export const init = spacetimedb.init(ctx => {
         night: terminusFare.night,
       });
     }
+  }
+
+  // Tourist destinations, each resolved to its nearest seeded stop.
+  for (const place of PLACES) {
+    const nearestStopId = place.nearestStop
+      ? (stopIdByName.get(place.nearestStop) ?? 0n)
+      : 0n;
+    ctx.db.place.insert({
+      id: 0n,
+      name: place.name,
+      category: place.category,
+      lat: place.lat,
+      lng: place.lng,
+      description: place.description,
+      nearestStopId,
+    });
   }
 });
 
@@ -174,6 +190,38 @@ export const setRouteFare = spacetimedb.reducer(
     } else {
       ctx.db.routeFare.insert({ id: 0n, routeId, stopId, adult, child, night });
     }
+  }
+);
+
+export const addPlace = spacetimedb.reducer(
+  {
+    name: t.string(),
+    category: t.string(),
+    lat: t.f32(),
+    lng: t.f32(),
+    description: t.string(),
+    nearestStopId: t.u64(),
+  },
+  (ctx, { name, category, lat, lng, description, nearestStopId }) => {
+    assertAdmin(ctx);
+    if (!name.trim()) throw new SenderError('name is required');
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90)
+      throw new SenderError('lat must be between -90 and 90');
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180)
+      throw new SenderError('lng must be between -180 and 180');
+    if (nearestStopId !== 0n && !ctx.db.busStop.id.find(nearestStopId))
+      throw new SenderError('nearestStopId does not match a known stop');
+
+    ctx.db.place.insert({ id: 0n, name, category, lat, lng, description, nearestStopId });
+  }
+);
+
+export const deletePlace = spacetimedb.reducer(
+  { placeId: t.u64() },
+  (ctx, { placeId }) => {
+    assertAdmin(ctx);
+    if (!ctx.db.place.id.find(placeId)) throw new SenderError('Place not found');
+    ctx.db.place.id.delete(placeId);
   }
 );
 

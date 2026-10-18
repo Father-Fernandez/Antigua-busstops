@@ -66,6 +66,19 @@ const spacetimedb = schema({
       night: t.u16(),
     }
   ),
+  // Tourist destinations (beaches, sites, villages) that riders want to reach,
+  // each tied to the nearest bus stop. `category` is one of beach|site|village.
+  place: table(
+    { public: true }, {
+      id: t.u64().primaryKey().autoInc(),
+      name: t.string(),
+      category: t.string(),
+      lat: t.f32(),
+      lng: t.f32(),
+      description: t.string(),
+      nearestStopId: t.u64().index(),
+    }
+  ),
 });
 
 export default spacetimedb;

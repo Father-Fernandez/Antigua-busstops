@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import type { BusStop, Route, RouteStop } from '../module_bindings/types';
+import type { BusStop, Place, Route, RouteStop } from '../module_bindings/types';
 import { buildRouteStopMap, buildStopMap, hasCoordinates } from '../lib/journey';
+import { categoryMeta } from '../lib/places';
 
 interface Props {
   stops: readonly BusStop[];
   routes: readonly Route[];
   routeStops: readonly RouteStop[];
+  places: readonly Place[];
 }
 
 const ANTIGUA_CENTER: [number, number] = [17.086, -61.8];
@@ -23,11 +25,29 @@ const stopIcon = L.divIcon({
   popupAnchor: [0, -8],
 });
 
-export default function MapView({ stops, routes, routeStops }: Props) {
+const placeIconCache = new Map<string, L.DivIcon>();
+function placeIcon(color: string): L.DivIcon {
+  let icon = placeIconCache.get(color);
+  if (!icon) {
+    icon = L.divIcon({
+      className: '',
+      html: `<span style="display:block;width:16px;height:16px;border-radius:4px;background:${color};border:2.5px solid #ffffff;box-shadow:0 1px 3px rgba(0,0,0,.45)"></span>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -9],
+    });
+    placeIconCache.set(color, icon);
+  }
+  return icon;
+}
+
+export default function MapView({ stops, routes, routeStops, places }: Props) {
   const [showStops, setShowStops] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
+  const [showPlaces, setShowPlaces] = useState(true);
 
   const mappedStops = useMemo(() => stops.filter(hasCoordinates), [stops]);
+  const mappedPlaces = useMemo(() => places.filter(hasCoordinates), [places]);
 
   const routeLines = useMemo(() => {
     const stopById = buildStopMap(stops);
@@ -60,6 +80,12 @@ export default function MapView({ stops, routes, routeStops }: Props) {
       on: showRoutes,
       set: setShowRoutes,
       swatch: 'bg-sun-500',
+    },
+    {
+      label: `Places (${mappedPlaces.length})`,
+      on: showPlaces,
+      set: setShowPlaces,
+      swatch: 'bg-brand-400',
     },
   ];
 
@@ -115,6 +141,27 @@ export default function MapView({ stops, routes, routeStops }: Props) {
                 <Popup>
                   <span className="font-semibold text-slate-800 dark:text-slate-100">
                     {stop.name}
+                  </span>
+                </Popup>
+              </Marker>
+            ))}
+
+          {showPlaces &&
+            mappedPlaces.map(place => (
+              <Marker
+                key={`place-${String(place.id)}`}
+                position={[place.lat, place.lng]}
+                icon={placeIcon(categoryMeta(place.category).color)}
+                title={place.name}
+                alt={`${categoryMeta(place.category).singular}: ${place.name}`}
+              >
+                <Popup>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    {place.name}
+                  </span>
+                  <br />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {categoryMeta(place.category).singular}
                   </span>
                 </Popup>
               </Marker>

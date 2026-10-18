@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { reducers } from '../module_bindings';
 import { useReducer } from 'spacetimedb/react';
-import type { BusStop, Fare, Route, RouteFare, RouteStop } from '../module_bindings/types';
+import type { BusStop, Fare, Place, Route, RouteFare, RouteStop } from '../module_bindings/types';
 import {
   buildFareByRouteMap,
   buildRouteFareMap,
@@ -12,6 +12,7 @@ import {
   sortRoutesByNumber,
   stopsForRoute,
 } from '../lib/journey';
+import { PLACE_CATEGORIES, categoryMeta } from '../lib/places';
 import RouteBadge from './RouteBadge';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
   routeStops: readonly RouteStop[];
   fares: readonly Fare[];
   routeFares: readonly RouteFare[];
+  places: readonly Place[];
   isAdmin: boolean;
   hasAdmins: boolean;
 }
@@ -40,6 +42,7 @@ export default function AdminView({
   routeStops,
   fares,
   routeFares,
+  places,
   isAdmin,
   hasAdmins,
 }: Props) {
@@ -51,6 +54,8 @@ export default function AdminView({
   const setRouteFare = useReducer(reducers.setRouteFare);
   const addStopToRoute = useReducer(reducers.addStopToRoute);
   const addStop = useReducer(reducers.addStop);
+  const addPlace = useReducer(reducers.addPlace);
+  const deletePlace = useReducer(reducers.deletePlace);
 
   const [form, setForm] = useState({
     number: '',
@@ -60,6 +65,14 @@ export default function AdminView({
     description: '',
   });
   const [stopForm, setStopForm] = useState({ name: '', lat: '', lng: '' });
+  const [placeForm, setPlaceForm] = useState({
+    name: '',
+    category: PLACE_CATEGORIES[0].id as string,
+    lat: '',
+    lng: '',
+    nearestStopId: '',
+    description: '',
+  });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [fareForm, setFareForm] = useState({ adult: '', child: '', night: '' });
   const [stopFareId, setStopFareId] = useState('');
@@ -79,6 +92,11 @@ export default function AdminView({
   const sortedStops = useMemo(
     () => [...stops].sort((a, b) => a.name.localeCompare(b.name)),
     [stops]
+  );
+
+  const sortedPlaces = useMemo(
+    () => [...places].sort((a, b) => a.name.localeCompare(b.name)),
+    [places]
   );
 
   if (!hasAdmins) {
@@ -141,6 +159,28 @@ export default function AdminView({
       lng: Number.parseFloat(stopForm.lng) || 0,
     });
     setStopForm({ name: '', lat: '', lng: '' });
+  };
+
+  const submitPlace = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = placeForm.name.trim();
+    if (!name) return;
+    addPlace({
+      name,
+      category: placeForm.category,
+      lat: Number.parseFloat(placeForm.lat) || 0,
+      lng: Number.parseFloat(placeForm.lng) || 0,
+      description: placeForm.description.trim(),
+      nearestStopId: placeForm.nearestStopId ? BigInt(placeForm.nearestStopId) : 0n,
+    });
+    setPlaceForm({
+      name: '',
+      category: PLACE_CATEGORIES[0].id,
+      lat: '',
+      lng: '',
+      nearestStopId: '',
+      description: '',
+    });
   };
 
   const openManage = (route: Route) => {
@@ -313,6 +353,148 @@ export default function AdminView({
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Add a place</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Beaches, sites and villages riders can travel to. Tie each one to its nearest stop so it
+          appears in the journey planner.
+        </p>
+        <form onSubmit={submitPlace} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block lg:col-span-2">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Name</span>
+            <input
+              className={inputClass}
+              placeholder="e.g. Darkwood Beach"
+              value={placeForm.name}
+              onChange={e => setPlaceForm({ ...placeForm, name: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Category
+            </span>
+            <select
+              className={inputClass}
+              value={placeForm.category}
+              onChange={e => setPlaceForm({ ...placeForm, category: e.target.value })}
+            >
+              {PLACE_CATEGORIES.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.singular}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Nearest stop
+            </span>
+            <select
+              className={inputClass}
+              value={placeForm.nearestStopId}
+              onChange={e => setPlaceForm({ ...placeForm, nearestStopId: e.target.value })}
+            >
+              <option value="">None</option>
+              {sortedStops.map(s => (
+                <option key={String(s.id)} value={String(s.id)}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Latitude
+            </span>
+            <input
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="17.06"
+              value={placeForm.lat}
+              onChange={e => setPlaceForm({ ...placeForm, lat: e.target.value })}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Longitude
+            </span>
+            <input
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="-61.89"
+              value={placeForm.lng}
+              onChange={e => setPlaceForm({ ...placeForm, lng: e.target.value })}
+            />
+          </label>
+          <label className="block lg:col-span-2">
+            <span className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Description
+            </span>
+            <input
+              className={inputClass}
+              placeholder="Optional short description"
+              value={placeForm.description}
+              onChange={e => setPlaceForm({ ...placeForm, description: e.target.value })}
+            />
+          </label>
+          <div className="sm:col-span-2 lg:col-span-4">
+            <button
+              type="submit"
+              disabled={!placeForm.name.trim()}
+              className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Add place
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Manage places</h2>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            {places.length} total
+          </span>
+        </div>
+        {sortedPlaces.length === 0 ? (
+          <p className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No places yet.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {sortedPlaces.map(place => {
+              const nearest =
+                place.nearestStopId !== 0n ? stopById.get(String(place.nearestStopId)) : undefined;
+              return (
+                <li key={String(place.id)} className="flex flex-wrap items-center gap-3 px-6 py-3">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: categoryMeta(place.category).color }}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-slate-800 dark:text-slate-100">
+                      {place.name}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {categoryMeta(place.category).singular} ·{' '}
+                      {nearest ? `nearest stop ${nearest.name}` : 'no nearest stop'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Delete ${place.name}? This cannot be undone.`))
+                        deletePlace({ placeId: place.id });
+                    }}
+                    className="rounded-lg border border-flag-100 bg-flag-50 px-3 py-1.5 text-sm font-semibold text-flag-600 transition hover:bg-flag-100 dark:border-flag-500/30 dark:bg-flag-500/15 dark:text-flag-400 dark:hover:bg-flag-500/25"
+                  >
+                    Delete
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

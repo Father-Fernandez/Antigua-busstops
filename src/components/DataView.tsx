@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import type { BusStop, Fare, Route, RouteFare, RouteStop } from '../module_bindings/types';
+import type { BusStop, Fare, Place, Route, RouteFare, RouteStop } from '../module_bindings/types';
 import {
   buildDataset,
   downloadFile,
+  placesCsv,
   routeFaresCsv,
   routesCsv,
   stopsCsv,
@@ -14,6 +15,7 @@ interface Props {
   routeStops: readonly RouteStop[];
   routeFares: readonly RouteFare[];
   fares: readonly Fare[];
+  places: readonly Place[];
   host: string;
   database: string;
 }
@@ -57,18 +59,19 @@ export default function DataView({
   routeStops,
   routeFares,
   fares,
+  places,
   host,
   database,
 }: Props) {
   const dataset = useMemo(
-    () => buildDataset({ routes, stops, routeStops, routeFares, fares, host, database }),
-    [routes, stops, routeStops, routeFares, fares, host, database]
+    () => buildDataset({ routes, stops, routeStops, routeFares, fares, places, host, database }),
+    [routes, stops, routeStops, routeFares, fares, places, host, database]
   );
 
   const downloads = [
     {
       label: 'Everything (JSON)',
-      detail: `${dataset.counts.routes} routes · ${dataset.counts.stops} stops`,
+      detail: `${dataset.counts.routes} routes · ${dataset.counts.stops} stops · ${dataset.counts.places} places`,
       run: () =>
         downloadFile(
           'bus-stop-antigua.json',
@@ -90,6 +93,11 @@ export default function DataView({
       label: 'Route fares (CSV)',
       detail: 'Fare to reach each stop',
       run: () => downloadFile('bus-stop-antigua-route-fares.csv', routeFaresCsv(dataset), 'text/csv'),
+    },
+    {
+      label: 'Places (CSV)',
+      detail: 'Beaches, sites and their nearest stop',
+      run: () => downloadFile('bus-stop-antigua-places.csv', placesCsv(dataset), 'text/csv'),
     },
   ];
 
@@ -160,12 +168,13 @@ export default function DataView({
         <CodeBlock code={`spacetime sql ${database} "SELECT number, name, terminus FROM route"`} />
         <CodeBlock code={`spacetime sql ${database} "SELECT name, lat, lng FROM bus_stop"`} />
         <CodeBlock code={`spacetime sql ${database} "SELECT * FROM route_fare"`} />
+        <CodeBlock code={`spacetime sql ${database} "SELECT name, category, lat, lng FROM place"`} />
 
         <h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Subscribe from any client
         </h3>
         <CodeBlock
-          code={`import { DbConnection } from './module_bindings';\n\nDbConnection.builder()\n  .withUri('${host}')\n  .withDatabaseName('${database}')\n  .subscribe(['route', 'bus_stop', 'route_stop', 'fare', 'route_fare']);`}
+          code={`import { DbConnection } from './module_bindings';\n\nDbConnection.builder()\n  .withUri('${host}')\n  .withDatabaseName('${database}')\n  .subscribe(['route', 'bus_stop', 'route_stop', 'fare', 'route_fare', 'place']);`}
         />
 
         <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
@@ -191,6 +200,7 @@ export default function DataView({
                 ['route_stop', 'Which stops belong to each route, in order', 'Read'],
                 ['fare', 'Per-route adult / child / night fares', 'Read'],
                 ['route_fare', 'Fare to reach each stop from St. John’s', 'Read'],
+                ['place', 'Beaches, sites and their nearest stop', 'Read'],
                 ['admin', 'Identities allowed to edit', 'Read-only'],
               ].map(([table, contents, access]) => (
                 <tr key={table} className="border-b border-slate-100 last:border-0 dark:border-slate-800">

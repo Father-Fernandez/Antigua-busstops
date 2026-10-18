@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { BusStop, Route, RouteFare, RouteStop } from '../module_bindings/types';
+import type { BusStop, Place, Route, RouteFare, RouteStop } from '../module_bindings/types';
 import {
   buildRouteFareMap,
   buildStopMap,
@@ -7,20 +7,25 @@ import {
   planJourney,
   type Itinerary,
 } from '../lib/journey';
+import { PLACE_CATEGORIES } from '../lib/places';
 import RouteBadge from './RouteBadge';
-import StopCombobox from './StopCombobox';
+import StopCombobox, { type ComboboxOption } from './StopCombobox';
 
 interface Props {
   stops: readonly BusStop[];
   routes: readonly Route[];
   routeStops: readonly RouteStop[];
   routeFares: readonly RouteFare[];
+  places: readonly Place[];
   initialFrom?: string;
   initialTo?: string;
   onPlan?: (from: string, to: string) => void;
 }
 
-const LAST_JOURNEY_KEY = 'bus-stop-antigua:last-journey';
+const LAST_JOURNEY_KEY = 'bus-stop-antigua:last-journey:v2';
+
+const stopOptionId = (id: bigint | string) => `stop:${id}`;
+const placeOptionId = (id: bigint | string) => `place:${id}`;
 
 function readLastJourney(): { from: string; to: string } | null {
   try {
@@ -94,6 +99,7 @@ export default function JourneyPlanner({
   routes,
   routeStops,
   routeFares,
+  places,
   initialFrom,
   initialTo,
   onPlan,
@@ -102,26 +108,50 @@ export default function JourneyPlanner({
     () => [...stops].sort((a, b) => a.name.localeCompare(b.name)),
     [stops]
   );
-  const validIds = useMemo(() => new Set(sortedStops.map(s => String(s.id))), [sortedStops]);
+
+  // Every option the picker offers: bus stops, then reachable places by category.
+  // Value ids are option ids (`stop:5`, `place:7`); `resolveStopId` maps them to
+  // the stop the planner actually routes through.
+  const { options, resolveStopId } = useMemo(() => {
+    const optionList: ComboboxOption[] = sortedStops.map(s => ({
+      id: stopOptionId(s.id),
+      label: s.name,
+      group: 'Bus stops',
+    }));
+    const lookup = new Map<string, string>();
+    for (const s of sortedStops) lookup.set(stopOptionId(s.id), String(s.id));
+
+    for (const category of PLACE_CATEGORIES) {
+      for (const place of places.filter(p => p.category === category.id && p.nearestStopId !== 0n)) {
+        optionList.push({
+          id: placeOptionId(place.id),
+          label: place.name,
+          group: category.plural,
+        });
+        lookup.set(placeOptionId(place.id), String(place.nearestStopId));
+      }
+    }
+    return { options: optionList, resolveStopId: lookup };
+  }, [sortedStops, places]);
 
   const urlJourney = useMemo(() => {
     if (
       initialFrom &&
       initialTo &&
       initialFrom !== initialTo &&
-      validIds.has(initialFrom) &&
-      validIds.has(initialTo)
+      resolveStopId.has(initialFrom) &&
+      resolveStopId.has(initialTo)
     ) {
       return { from: initialFrom, to: initialTo };
     }
     return null;
-  }, [initialFrom, initialTo, validIds]);
+  }, [initialFrom, initialTo, resolveStopId]);
 
   const remembered = useMemo(() => {
     const last = readLastJourney();
-    if (last && validIds.has(last.from) && validIds.has(last.to)) return last;
+    if (last && resolveStopId.has(last.from) && resolveStopId.has(last.to)) return last;
     return null;
-  }, [validIds]);
+  }, [resolveStopId]);
 
   const start = urlJourney ?? remembered;
 
@@ -135,18 +165,17 @@ export default function JourneyPlanner({
   const routeFareMap = useMemo(() => buildRouteFareMap(routeFares), [routeFares]);
 
   const results = useMemo(() => {
-    if (!submitted || !submitted.origin || !submitted.dest) return [];
-    return planJourney(
-      BigInt(submitted.origin),
-      BigInt(submitted.dest),
-      routes,
-      routeStops,
-      stopById,
-      routeFareMap
-    );
-  }, [submitted, routes, routeStops, stopById, routeFareMap]);
+    if (!submitted) return [];
+    const from = resolveStopId.get(submitted.origin);
+    const to = resolveStopId.get(submitted.dest);
+    if (!from || !to || from === to) return [];
+    return planJourney(BigInt(from), BigInt(to), routes, routeStops, stopById, routeFareMap);
+  }, [submitted, resolveStopId, routes, routeStops, stopById, routeFareMap]);
 
   const plan = (from: string, to: string) => {
+    const fromStop = resolveStopId.get(from);
+    const toStop = resolveStopId.get(to);
+    if (!fromStop || !toStop || fromStop === toStop) return;
     setSubmitted({ origin: from, dest: to });
     try {
       window.localStorage.setItem(LAST_JOURNEY_KEY, JSON.stringify({ from, to }));
@@ -171,6 +200,8 @@ export default function JourneyPlanner({
     setSubmitted(null);
   };
 
+  const sameStop = resolveStopId.get(origin) === resolveStopId.get(dest);
+
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
       <div className="bg-gradient-to-br from-brand-50 to-white px-6 py-6 dark:from-slate-900 dark:to-slate-900 sm:px-8">
@@ -178,21 +209,22 @@ export default function JourneyPlanner({
           Where are you going today?
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Pick your start and destination to see which buses to catch and what it costs.
+          Pick your start and destination — bus stops and tourist spots both work.
         </p>
 
         <form
           className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-end"
           onSubmit={e => {
             e.preventDefault();
-            if (origin && dest && origin !== dest) plan(origin, dest);
+            if (origin && dest && !sameStop) plan(origin, dest);
           }}
         >
           <StopCombobox
             label="I am here"
-            stops={sortedStops}
+            options={options}
             value={origin}
             onChange={chooseOrigin}
+            placeholder="Search stops, beaches, places…"
           />
 
           <button
@@ -208,14 +240,15 @@ export default function JourneyPlanner({
 
           <StopCombobox
             label="I am going to"
-            stops={sortedStops}
+            options={options}
             value={dest}
             onChange={chooseDest}
+            placeholder="Search stops, beaches, places…"
           />
 
           <button
             type="submit"
-            disabled={!origin || !dest || origin === dest}
+            disabled={!origin || !dest || sameStop}
             className="h-[46px] rounded-xl bg-sun-500 px-6 font-bold text-slate-900 shadow-sm transition hover:bg-sun-400 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Find buses

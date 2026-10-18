@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 export const PAGES = [
   'planner',
   'map',
+  'explore',
   'routes',
   'stops',
   'data',

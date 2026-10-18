@@ -5,6 +5,7 @@ import Header from './components/Header';
 import JourneyPlanner from './components/JourneyPlanner';
 import RoutesView from './components/RoutesView';
 import StopsView from './components/StopsView';
+import ExploreView from './components/ExploreView';
 import DataView from './components/DataView';
 import AdminView from './components/AdminView';
 import AboutView from './components/AboutView';
@@ -44,6 +45,7 @@ function App() {
   const [routeStops, routeStopsReady] = useTable(tables.routeStop);
   const [fares, faresReady] = useTable(tables.fare);
   const [routeFares, routeFaresReady] = useTable(tables.routeFare);
+  const [places, placesReady] = useTable(tables.place);
   const [admins, adminsReady] = useTable(tables.admin);
 
   const ready =
@@ -52,6 +54,7 @@ function App() {
     routeStopsReady &&
     faresReady &&
     routeFaresReady &&
+    placesReady &&
     adminsReady;
 
   const identityHex = identity?.toHexString();
@@ -86,6 +89,7 @@ function App() {
                   routes={routes}
                   routeStops={routeStops}
                   routeFares={routeFares}
+                  places={places}
                   initialFrom={params.get('from') ?? undefined}
                   initialTo={params.get('to') ?? undefined}
                   onPlan={(from, to) => navigate('planner', { from, to })}
@@ -100,9 +104,11 @@ function App() {
 
             {activePage === 'map' && (
               <Suspense fallback={<Loading />}>
-                <MapView stops={stops} routes={routes} routeStops={routeStops} />
+                <MapView stops={stops} routes={routes} routeStops={routeStops} places={places} />
               </Suspense>
             )}
+
+            {activePage === 'explore' && <ExploreView places={places} stops={stops} />}
 
             {activePage === 'routes' && (
               <RoutesView
@@ -123,6 +129,7 @@ function App() {
                 routeStops={routeStops}
                 routeFares={routeFares}
                 fares={fares}
+                places={places}
                 host={SPACETIMEDB_HOST}
                 database={SPACETIMEDB_DB_NAME}
               />
@@ -135,6 +142,7 @@ function App() {
                 routeStops={routeStops}
                 fares={fares}
                 routeFares={routeFares}
+                places={places}
                 isAdmin={isAdmin}
                 hasAdmins={hasAdmins}
               />

@@ -1,4 +1,4 @@
-import type { BusStop, Fare, Route, RouteFare, RouteStop } from '../module_bindings/types';
+import type { BusStop, Fare, Place, Route, RouteFare, RouteStop } from '../module_bindings/types';
 import {
   buildFareByRouteMap,
   buildRouteFareMap,
@@ -35,12 +35,23 @@ export interface ExportStop {
   hasCoordinates: boolean;
 }
 
+export interface ExportPlace {
+  id: number;
+  name: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  description: string;
+  nearestStop: string | null;
+}
+
 export interface ExportDataset {
   generatedAt: string;
   source: { host: string; database: string; protocol: 'spacetimedb' };
-  counts: { routes: number; stops: number; stopsWithCoordinates: number };
+  counts: { routes: number; stops: number; stopsWithCoordinates: number; places: number };
   routes: ExportRoute[];
   stops: ExportStop[];
+  places: ExportPlace[];
 }
 
 export interface DatasetInput {
@@ -49,6 +60,7 @@ export interface DatasetInput {
   routeStops: readonly RouteStop[];
   routeFares: readonly RouteFare[];
   fares: readonly Fare[];
+  places: readonly Place[];
   host: string;
   database: string;
 }
@@ -92,6 +104,19 @@ export function buildDataset(input: DatasetInput): ExportDataset {
       hasCoordinates: hasCoordinates(stop),
     }));
 
+  const places: ExportPlace[] = [...input.places]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(place => ({
+      id: Number(place.id),
+      name: place.name,
+      category: place.category,
+      latitude: place.lat,
+      longitude: place.lng,
+      description: place.description,
+      nearestStop:
+        place.nearestStopId !== 0n ? (stopById.get(String(place.nearestStopId))?.name ?? null) : null,
+    }));
+
   return {
     generatedAt: new Date().toISOString(),
     source: { host: input.host, database: input.database, protocol: 'spacetimedb' },
@@ -99,9 +124,11 @@ export function buildDataset(input: DatasetInput): ExportDataset {
       routes: routes.length,
       stops: stops.length,
       stopsWithCoordinates: stops.filter(s => s.hasCoordinates).length,
+      places: places.length,
     },
     routes,
     stops,
+    places,
   };
 }
 
@@ -145,6 +172,20 @@ export function routeFaresCsv(dataset: ExportDataset): string {
     }
   }
   return toCsv(['route_number', 'route_name', 'sequence', 'stop_name', 'fare_to_here_cents'], rows);
+}
+
+export function placesCsv(dataset: ExportDataset): string {
+  return toCsv(
+    ['name', 'category', 'latitude', 'longitude', 'nearest_stop', 'description'],
+    dataset.places.map(p => [
+      p.name,
+      p.category,
+      p.latitude,
+      p.longitude,
+      p.nearestStop ?? '',
+      p.description,
+    ])
+  );
 }
 
 /** Trigger a client-side file download for generated data. */

@@ -6,18 +6,22 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
+import AddPlaceReducer from "../add_place_reducer";
 import AddRouteReducer from "../add_route_reducer";
 import AddStopReducer from "../add_stop_reducer";
 import AddStopToRouteReducer from "../add_stop_to_route_reducer";
 import ClaimAdminReducer from "../claim_admin_reducer";
+import DeletePlaceReducer from "../delete_place_reducer";
 import DeleteRouteReducer from "../delete_route_reducer";
 import SetFareReducer from "../set_fare_reducer";
 import SetRouteFareReducer from "../set_route_fare_reducer";
 
+export type AddPlaceParams = __Infer<typeof AddPlaceReducer>;
 export type AddRouteParams = __Infer<typeof AddRouteReducer>;
 export type AddStopParams = __Infer<typeof AddStopReducer>;
 export type AddStopToRouteParams = __Infer<typeof AddStopToRouteReducer>;
 export type ClaimAdminParams = __Infer<typeof ClaimAdminReducer>;
+export type DeletePlaceParams = __Infer<typeof DeletePlaceReducer>;
 export type DeleteRouteParams = __Infer<typeof DeleteRouteReducer>;
 export type SetFareParams = __Infer<typeof SetFareReducer>;
 export type SetRouteFareParams = __Infer<typeof SetRouteFareReducer>;

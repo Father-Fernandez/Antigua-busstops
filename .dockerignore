@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.gitignore
+.gitattributes
+.env
+*.log
+*.tsbuildinfo
+spacetime.local.json
+spacetimedb
+Overview.md
+.vscode
+.idea
+Dockerfile
+docker-compose.yml

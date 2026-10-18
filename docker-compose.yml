@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+    image: bus-system:latest
+    container_name: bus-system
+    ports:
+      - "8080:80"
+    environment:
+      # Point the app at your SpacetimeDB instance (defaults to Maincloud).
+      SPACETIMEDB_HOST: wss://maincloud.spacetimedb.com
+      SPACETIMEDB_DB_NAME: bus-system-qcj1z
+    restart: unless-stopped

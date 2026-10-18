@@ -6,10 +6,9 @@ import App from './App.tsx';
 import { Identity } from 'spacetimedb';
 import { SpacetimeDBProvider } from 'spacetimedb/react';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
+import { SPACETIMEDB_HOST, SPACETIMEDB_DB_NAME } from './lib/config';
 
-const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'wss://maincloud.spacetimedb.com';
-const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'bus-system-qcj1z';
-const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
+const TOKEN_KEY = `${SPACETIMEDB_HOST}/${SPACETIMEDB_DB_NAME}/auth_token`;
 
 const onConnect = (_conn: DbConnection, identity: Identity, token: string) => {
   localStorage.setItem(TOKEN_KEY, token);
@@ -28,8 +27,8 @@ const onConnectError = (_ctx: ErrorContext, err: Error) => {
 };
 
 const connectionBuilder = DbConnection.builder()
-  .withUri(HOST)
-  .withDatabaseName(DB_NAME)
+  .withUri(SPACETIMEDB_HOST)
+  .withDatabaseName(SPACETIMEDB_DB_NAME)
   .withToken(localStorage.getItem(TOKEN_KEY) || undefined)
   .onConnect(onConnect)
   .onDisconnect(onDisconnect)

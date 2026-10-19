@@ -66,6 +66,17 @@ docker compose up --build      # serve on http://localhost:8080
 The image builds the client and serves it with nginx, injecting the live
 SpacetimeDB target at container start (see `docker/40-runtime-config.sh`).
 
+## GitHub Pages
+
+The site is a static build and deploys to GitHub Pages via
+`.github/workflows/pages.yml`. In the repository, set **Settings → Pages →
+Source** to **GitHub Actions**; every push to `main` then builds and publishes
+`dist`.
+
+It is served at <https://father-fernandez.github.io/Antigua-busstops/>. `vite`
+uses a relative `base`, so the same build also works when nginx serves it from
+the site root.
+
 ## Open data
 
 Routes, stops and fares are public and read-only; writes are restricted to

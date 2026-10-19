@@ -11,9 +11,9 @@
     <meta name="theme-color" content="#d32630" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#2b2b23" media="(prefers-color-scheme: dark)" />
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bus Stop Antigua" />
@@ -22,14 +22,21 @@
       property="og:description"
       content="Plan bus journeys across Antigua: search routes, stops and fares for the island's public bus network."
     />
-    <meta property="og:image" content="/og-image.png" />
+    <meta
+      property="og:image"
+      content="https://father-fernandez.github.io/Antigua-busstops/og-image.png"
+    />
+    <meta property="og:url" content="https://father-fernandez.github.io/Antigua-busstops/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Bus Stop Antigua — Getting Around Made Easy" />
     <meta
       name="twitter:description"
       content="Plan bus journeys across Antigua: search routes, stops and fares for the island's public bus network."
     />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta
+      name="twitter:image"
+      content="https://father-fernandez.github.io/Antigua-busstops/og-image.png"
+    />
 
     <script>
       // Apply the saved theme before first paint to avoid a flash of the wrong mode.
@@ -43,7 +50,7 @@
         } catch (e) {}
       })();
     </script>
-    <script src="/config.js"></script>
+    <script src="%BASE_URL%config.js"></script>
   </head>
   <body>
     <div id="root"></div>

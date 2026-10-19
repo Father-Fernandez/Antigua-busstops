@@ -4,7 +4,6 @@ import { useSpacetimeDB, useTable } from 'spacetimedb/react';
 import Header from './components/Header';
 import JourneyPlanner from './components/JourneyPlanner';
 import RoutesView from './components/RoutesView';
-import StopsView from './components/StopsView';
 import ExploreView from './components/ExploreView';
 import DataView from './components/DataView';
 import AdminView from './components/AdminView';
@@ -120,8 +119,6 @@ function App() {
                 routeFares={routeFares}
               />
             )}
-
-            {activePage === 'stops' && <StopsView stops={stops} />}
 
             {activePage === 'data' && (
               <DataView

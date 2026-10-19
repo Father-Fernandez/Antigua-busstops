@@ -8,7 +8,6 @@ const NAV: { id: Page; label: string }[] = [
   { id: 'map', label: 'Map' },
   { id: 'explore', label: 'Explore' },
   { id: 'routes', label: 'Bus Routes' },
-  { id: 'stops', label: 'Bus Stops' },
   { id: 'data', label: 'Data' },
   { id: 'admin', label: 'Admin' },
   { id: 'about', label: 'About' },

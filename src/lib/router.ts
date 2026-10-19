@@ -6,7 +6,6 @@ export const PAGES = [
   'map',
   'explore',
   'routes',
-  'stops',
   'data',
   'admin',
   'about',

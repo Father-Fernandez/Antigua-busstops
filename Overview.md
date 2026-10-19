@@ -93,7 +93,7 @@ bus-system/
 │   │   ├── links.ts                # Links to the original busstopanu.com pages
 │   │   └── export.ts               # JSON/CSV dataset builders for downloads
 │   ├── components/                 # Header, JourneyPlanner, StopCombobox, MapView,
-│   │                               #   ExploreView, RoutesView, StopsView, DataView,
+│   │                               #   ExploreView, RoutesView, DataView,
 │   │                               #   AdminView, AboutView, WeatherCard,
 │   │                               #   LegacyLinks, Footer
 │   └── module_bindings/            # Auto-generated types mirroring the module
@@ -271,8 +271,6 @@ state until the initial subscription replay has landed.
   stays out of the initial bundle.
 - **`RoutesView`** — route cards; expanding one lists its ordered stops with each
   stop's fare.
-- **`StopsView`** — searchable stop list (coordinates hidden; "Location pending"
-  tag for un-geocoded stops).
 - **`WeatherCard`** — current weather for St. John's, fetched from Open-Meteo (no
   API key) in the browser.
 - **`DataView`** — the public data page: JSON/CSV downloads, connection details,

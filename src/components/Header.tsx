@@ -65,7 +65,7 @@ export default function Header({
 
   return (
     <header className="relative z-40">
-      <div className="bg-ink text-white">
+      <div className="bg-ink text-white dark:bg-slate-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <button
             onClick={() => go('planner')}

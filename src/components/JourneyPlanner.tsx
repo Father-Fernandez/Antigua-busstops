@@ -209,7 +209,7 @@ export default function JourneyPlanner({
           Where are you going today?
         </h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Pick your start and destination — bus stops and tourist spots both work.
+          Pick your start and destination, bus stops and tourist spots both work.
         </p>
 
         <form

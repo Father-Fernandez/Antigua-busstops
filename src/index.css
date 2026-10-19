@@ -73,23 +73,31 @@ html {
 
 html.dark {
   color-scheme: dark;
+  /* Dark mode uses a warm, greyed charcoal rather than near-black. Remapping
+     Tailwind's slate tokens here (scoped to .dark) recolours every dark surface
+     at once while leaving the light theme untouched. */
+  --color-slate-950: #1e1e18;
+  --color-slate-900: #2b2b23;
+  --color-slate-800: #3a3a2f;
+  --color-slate-700: #4c4c3f;
+  --color-slate-600: #5f5f4e;
 }
 
 /* Theme Leaflet's built-in popups and controls to match dark mode. */
 .dark .leaflet-popup-content-wrapper,
 .dark .leaflet-popup-tip {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #2b2b23;
+  color: #e7e7df;
 }
 
 .dark .leaflet-bar a {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #2b2b23;
+  color: #e7e7df;
 }
 
 .dark .leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.8);
-  color: #94a3b8;
+  background: rgba(43, 43, 35, 0.8);
+  color: #b8b8a8;
 }
 
 .dark .leaflet-control-attribution a {

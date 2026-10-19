@@ -109,7 +109,7 @@ export default function DataView({
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Open data</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           Every route, stop and fare here is public. The data lives in a SpacetimeDB database and is
-          readable by anyone — download it below, or connect your own tools straight to the live
+          readable by anyone, download it below, or connect your own tools straight to the live
           database. There is no sign-up, key or paywall.
         </p>
 
@@ -138,8 +138,8 @@ export default function DataView({
           How the public can access it
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          The database is hosted on SpacetimeDB Maincloud. Point any SpacetimeDB client — the CLI,
-          the TypeScript/Rust/C# SDKs — at the host and database name below, subscribe to the public
+          The database is hosted on SpacetimeDB Maincloud. Point any SpacetimeDB client; the CLI,
+          the TypeScript/Rust/C# SDKs at the host and database name below, subscribe to the public
           tables, and you get the same live data this site shows.
         </p>
 
@@ -201,7 +201,6 @@ export default function DataView({
                 ['fare', 'Per-route adult / child / night fares', 'Read'],
                 ['route_fare', 'Fare to reach each stop from St. John’s', 'Read'],
                 ['place', 'Beaches, sites and their nearest stop', 'Read'],
-                ['admin', 'Identities allowed to edit', 'Read-only'],
               ].map(([table, contents, access]) => (
                 <tr key={table} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                   <td className="py-2 pr-4 font-mono text-xs text-slate-800 dark:text-slate-100">

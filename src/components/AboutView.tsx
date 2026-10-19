@@ -41,7 +41,7 @@ export default function AboutView({ stopCount, routeCount }: Props) {
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           Routes, stops and fares are public and read-only. Anyone can download them or query the
-          live database directly — visit the{' '}
+          live database directly, visit the{' '}
           <span className="font-semibold text-slate-700 dark:text-slate-200">Data</span> page for
           exports and connection details. Editing is restricted to me and anyone that asks nicely
         </p>

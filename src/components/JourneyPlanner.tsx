@@ -134,18 +134,15 @@ export default function JourneyPlanner({
     return { options: optionList, resolveStopId: lookup };
   }, [sortedStops, places]);
 
+  const urlFrom = initialFrom && resolveStopId.has(initialFrom) ? initialFrom : '';
+  const urlTo = initialTo && resolveStopId.has(initialTo) ? initialTo : '';
+
   const urlJourney = useMemo(() => {
-    if (
-      initialFrom &&
-      initialTo &&
-      initialFrom !== initialTo &&
-      resolveStopId.has(initialFrom) &&
-      resolveStopId.has(initialTo)
-    ) {
-      return { from: initialFrom, to: initialTo };
+    if (urlFrom && urlTo && resolveStopId.get(urlFrom) !== resolveStopId.get(urlTo)) {
+      return { from: urlFrom, to: urlTo };
     }
     return null;
-  }, [initialFrom, initialTo, resolveStopId]);
+  }, [urlFrom, urlTo, resolveStopId]);
 
   const remembered = useMemo(() => {
     const last = readLastJourney();
@@ -153,10 +150,8 @@ export default function JourneyPlanner({
     return null;
   }, [resolveStopId]);
 
-  const start = urlJourney ?? remembered;
-
-  const [origin, setOrigin] = useState(start?.from ?? '');
-  const [dest, setDest] = useState(start?.to ?? '');
+  const [origin, setOrigin] = useState(urlFrom || remembered?.from || '');
+  const [dest, setDest] = useState(urlTo || remembered?.to || '');
   const [submitted, setSubmitted] = useState<{ origin: string; dest: string } | null>(
     urlJourney ? { origin: urlJourney.from, dest: urlJourney.to } : null
   );

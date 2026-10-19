@@ -88,7 +88,7 @@ export default function ExploreView({ places, stops }: Props) {
                     <button
                       type="button"
                       disabled={!reachable}
-                      onClick={() => navigate('planner', { to: `place:${place.id}` })}
+                      onClick={() => navigate('planner', { to: `stop:${nearest!.id}` })}
                       className="mt-3 w-full rounded-lg bg-brand-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Plan a bus
